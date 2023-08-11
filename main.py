@@ -30,7 +30,7 @@ from recommendation import RecommendationManager
 from recommendation_json import recommendation_json
 # --------------------------------- Setup
 
-LLM_EMULATOR = True
+LLM_EMULATOR = False
 
 # --------------------------------- Sessions
 
@@ -138,7 +138,7 @@ def get_fact_list_from_question_answer(node_id : int, question : str, provied_an
         error = True
     return FactList(fact_list_from_a2q, error)
 
-def get_anser_value(answer_str : str) -> bool | None:
+def get_anser_value(answer_str : str) -> bool:
     """Convert answer string into bool or None"""
     answer_str = answer_str.lower()
     if answer_str == "yes":

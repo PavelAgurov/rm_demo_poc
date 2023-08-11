@@ -90,12 +90,12 @@ class BaseDialogNavigator(ABC):
         return None
 
     @abstractmethod
-    def get_next_nodeId(self) -> int | None:
+    def get_next_nodeId(self) -> int:
         """Return next nodeId"""
         return None
 
     @abstractmethod
-    def get_question_by_nodeId(self, node_id) -> str | None:
+    def get_question_by_nodeId(self, node_id) -> str:
         """Return question by nodeId"""
         return None
 
@@ -207,7 +207,7 @@ class TreeDialogNavigator(BaseDialogNavigator):
             node_id = next_nodeId
         raise NavigationError("Cycled dialog tree")
 
-    def get_question_by_nodeId(self, node_id) -> str | None:
+    def get_question_by_nodeId(self, node_id) -> str:
         node = self.__get_node_by_id(node_id)
         if not node:
             raise NavigationError(f"Unknown nodeId {node_id}")
