@@ -1,0 +1,5 @@
+We are working on the project, we need to host a new internal api which needs to have a datastore with 3 environment
+
+We are working on the project, we need to host a new publicly facing website, Tech used ReactJS, APIs, DB with 3 environment  
+
+We are working on migration of the project from legacy code. Project contains 3 API end-points
