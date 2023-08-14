@@ -189,7 +189,7 @@ score_prompt = PromptTemplate.from_template(score_prompt_template)
 score_chain  = LLMChain(llm=llm, prompt = score_prompt)
 
 if LLM_EMULATOR:
-    emulator_container.markdown(LLM_EMULATOR_INFO_HTML, unsafe_allow_html=True)
+    emulator_container.markdown(LLM_EMULATOR_INFO_HTML, unsafe_allow_html=True) # pylint: disable=E0601
 
 #------------------------------- APP
 

@@ -33,23 +33,36 @@ class TreeViewNode:
     no_node_id  : int
     question    : str
     variable    : str
+    fixed_value : bool
     answer      : Answer
-    def __init__(self, yes_node_id : int, no_node_id: int, question : str, variable : str):
+    def __init__(self, yes_node_id : int, no_node_id: int, question : str, variable : str, fixed_value : bool):
         self.yes_node_id = yes_node_id
         self.no_node_id  = no_node_id
         self.question    = question
         self.variable    = variable
+        self.fixed_value = fixed_value
         self.answer      = None
 
     @classmethod
-    def branch_node(cls, yes_question_id : int, no_question_id: int, question : str, variable : str):
+    def branch_node(cls, yes_question_id : int, no_question_id: int, question : str, variable : str = None):
         """Create branch node - redirect depends on yes/no"""
-        return TreeViewNode(yes_question_id, no_question_id, question, variable)
+        if question is None:
+             raise NavigationError("Question can't be None for branch_node")
+        return TreeViewNode(yes_question_id, no_question_id, question, variable, None)
 
     @classmethod
-    def question_node(cls, next_node : int, question : str, variable : str):
+    def question_node(cls, next_node : int, question : str, variable : str = None):
         """Create question node - it's only question and one path to redirect"""
-        return TreeViewNode(next_node, next_node, question, variable)
+        if question is None:
+             raise NavigationError("Question can't be None for question_node")
+        return TreeViewNode(next_node, next_node, question, variable, None)
+
+    @classmethod
+    def fixed_node(cls, yes_question_id : int, no_question_id: int, question : str, variable : str, fixed_value : bool):
+        """Create fixed value node - redirect depends on yes/no, but only if we have required answer"""
+        if fixed_value is None:
+             raise NavigationError("fixed_value can't be None for fixed_node")
+        return TreeViewNode(yes_question_id, no_question_id, question, variable, fixed_value)
 
     def set_answer(self, answer : Answer):
         """Assign answer to the node"""
@@ -195,13 +208,32 @@ class TreeDialogNavigator(BaseDialogNavigator):
             if not node:
                 raise NavigationError(f"Unknown nodeId {node_id}")
             node_answer = node.get_answer()
-            if node_answer is None or node_answer.answer is None: # no answer yet - return this node
-                return node_id
-            if node_answer.answer: # we have answer yes or no
-                next_nodeId = node.yes_node_id
-            else:
-                next_nodeId = node.no_node_id
-
+            no_answer_yet = node_answer is None or node_answer.answer is None # no answer yet
+            fixed_value = node.fixed_value
+            if fixed_value is None: # it's normal node
+                if no_answer_yet: 
+                    return node_id
+                if node_answer.answer: # we have answer yes or no
+                    next_nodeId = node.yes_node_id
+                else:
+                    next_nodeId = node.no_node_id
+            else: # fixed value node
+                if no_answer_yet: # no answer yet - we will not run fixed_value branch and run opposite
+                    if fixed_value:
+                        next_nodeId = node.no_node_id
+                    else:
+                        next_nodeId = node.yes_node_id                
+                else:
+                    if node_answer.answer != fixed_value: # we have answer, but it's not fixed_answer - run opposite branch
+                        if fixed_value:
+                            next_nodeId = node.no_node_id
+                        else:
+                            next_nodeId = node.yes_node_id
+                    else: # we have required fixed value - run related branch
+                        if fixed_value:
+                            next_nodeId = node.yes_node_id
+                        else:
+                            next_nodeId = node.no_node_id
             if not next_nodeId: # no next node, that's end of navigation
                 return None
             node_id = next_nodeId

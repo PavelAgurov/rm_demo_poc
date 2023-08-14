@@ -15,9 +15,16 @@ tree_json_for_test : dict[int, TreeViewNode] = { # Yes/No nodes or Document name
         5: TreeViewNode.question_node(6, "N5", "F_N5"),
         6: TreeViewNode.branch_node(7, 8, "N6", "F_N6"),
         7: TreeViewNode.question_node(8, "N7", "F_N7"),
-        8: TreeViewNode.branch_node(9, None, "N8", "F_N8"),
-        9: TreeViewNode.branch_node(10, None, "N9", "F_N9"),
-        10: TreeViewNode.question_node(None, "N10", "F_N10")
+        8: TreeViewNode.branch_node(9, 11, "N8", "F_N8"),
+        9: TreeViewNode.branch_node(10, 11, "N9", "F_N9"),
+        10: TreeViewNode.branch_node(None, 14, "N10", "F_N10"),
+
+        11: TreeViewNode.fixed_node(12, 13, "N11", "F_N11", True),
+        12: TreeViewNode.question_node(13, "N12", "F_N12"),
+        13: TreeViewNode.question_node(None, "N13", "F_N13"),
+
+        14: TreeViewNode.fixed_node(None, 15, "N14", "F_N14", False),
+        15: TreeViewNode.question_node(None, "N15", "F_N15")
     }
 
 def test_navigation_question_list():
@@ -91,6 +98,7 @@ def test_navigation_tree():
 
     treeDialogNavigator.clear_all_answers()
 
+    # check varibales
     treeDialogNavigator.set_node_answer(1, Answer(1, True, "", []))
     treeDialogNavigator.set_node_answer(2, Answer(1, True, "", []))
     treeDialogNavigator.set_node_answer(3, Answer(1, True, "", []))
@@ -115,42 +123,50 @@ def test_navigation_tree():
     assert next_node_id == 4
     treeDialogNavigator.clear_all_answers()
 
-    treeDialogNavigator.set_node_answer(3, Answer(1, True, "", []))
+    # move to 11, but 11 has no True answer -> next is 13
     treeDialogNavigator.set_node_answer(1, Answer(0, False, "", []))
+    treeDialogNavigator.set_node_answer(3, Answer(1, True, "", []))
     treeDialogNavigator.set_node_answer(4, Answer(0, False, "", []))
     treeDialogNavigator.set_node_answer(8, Answer(0, False, "", []))
     next_node_id : int = treeDialogNavigator.get_next_nodeId()
-    assert next_node_id is None
+    assert next_node_id == 13
     treeDialogNavigator.clear_all_answers()
 
+    # navigate by tree
     treeDialogNavigator.set_node_answer(1, Answer(1, True, "", []))
     treeDialogNavigator.set_node_answer(2, Answer(1, True, "", []))
     treeDialogNavigator.set_node_answer(3, Answer(1, True, "", []))
+    treeDialogNavigator.set_node_answer(4, Answer(0, False, "", []))
     treeDialogNavigator.set_node_answer(8, Answer(1, True, "", []))
     treeDialogNavigator.set_node_answer(9, Answer(1, True, "", []))
-    treeDialogNavigator.set_node_answer(4, Answer(0, False, "", []))
     next_node_id : int = treeDialogNavigator.get_next_nodeId()
     assert next_node_id == 10
-    treeDialogNavigator.clear_all_answers()
-
-    treeDialogNavigator.set_node_answer(1, Answer(1, True, "", []))
-    treeDialogNavigator.set_node_answer(2, Answer(1, True, "", []))
-    treeDialogNavigator.set_node_answer(3, Answer(1, True, "", []))
-    treeDialogNavigator.set_node_answer(8, Answer(1, True, "", []))
-    treeDialogNavigator.set_node_answer(9, Answer(1, True, "", []))
     treeDialogNavigator.set_node_answer(10, Answer(1, True, "", []))
-    treeDialogNavigator.set_node_answer(4, Answer(0, False, "", []))
     next_node_id : int = treeDialogNavigator.get_next_nodeId()
     assert next_node_id is None
-    treeDialogNavigator.clear_all_answers()
-
-    treeDialogNavigator.set_node_answer(1, Answer(1, True, "", []))
-    treeDialogNavigator.set_node_answer(2, Answer(1, True, "", []))
-    treeDialogNavigator.set_node_answer(3, Answer(1, True, "", []))
-    treeDialogNavigator.set_node_answer(8, Answer(1, True, "", []))
-    treeDialogNavigator.set_node_answer(9, Answer(1, True, "", []))
-    treeDialogNavigator.set_node_answer(4, Answer(0, False, "", []))
+    # move to 14, but 14 has no False answer -> None
     treeDialogNavigator.set_node_answer(10, Answer(0, False, "", []))
     next_node_id : int = treeDialogNavigator.get_next_nodeId()
     assert next_node_id is None
+    
+    # move to 11 and 11 has True answer -> next is 12
+    treeDialogNavigator.set_node_answer(1, Answer(0, False, "", []))
+    treeDialogNavigator.set_node_answer(3, Answer(1, True, "", []))
+    treeDialogNavigator.set_node_answer(4, Answer(0, False, "", []))
+    treeDialogNavigator.set_node_answer(8, Answer(0, False, "", []))
+    treeDialogNavigator.set_node_answer(11, Answer(1, True, "", []))
+    next_node_id : int = treeDialogNavigator.get_next_nodeId()
+    assert next_node_id == 12
     treeDialogNavigator.clear_all_answers()
+
+    # move to 14 and 14 has False answer -> 15
+    treeDialogNavigator.set_node_answer(1, Answer(1, True, "", []))
+    treeDialogNavigator.set_node_answer(2, Answer(1, True, "", []))
+    treeDialogNavigator.set_node_answer(3, Answer(1, True, "", []))
+    treeDialogNavigator.set_node_answer(4, Answer(0, False, "", []))
+    treeDialogNavigator.set_node_answer(8, Answer(1, True, "", []))
+    treeDialogNavigator.set_node_answer(9, Answer(1, True, "", []))
+    treeDialogNavigator.set_node_answer(10, Answer(0, False, "", []))
+    treeDialogNavigator.set_node_answer(14, Answer(0, False, "", []))
+    next_node_id : int = treeDialogNavigator.get_next_nodeId()
+    assert next_node_id == 15

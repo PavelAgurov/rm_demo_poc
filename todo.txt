@@ -1,0 +1,4 @@
+1. key words for question
+2. Split into chunks
+3. Validate all or only by navigation (if tree is big) - flag for branch?
+

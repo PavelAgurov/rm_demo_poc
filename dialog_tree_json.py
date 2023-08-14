@@ -1,6 +1,8 @@
 """
     Definition of treeview for navigation
 """
+# pylint: disable=C0301,C0305
+
 from navigation import TreeViewNode
 
 tree_json : dict[int, TreeViewNode] = { # Yes/No nodes or Document name
@@ -13,6 +15,9 @@ tree_json : dict[int, TreeViewNode] = { # Yes/No nodes or Document name
         7: TreeViewNode.question_node(8, "Do you want to monetize your API?", "F_API_MONEY"),
         8: TreeViewNode.branch_node(9, None, "Do you use database?", None),
         9: TreeViewNode.branch_node(None, 10, "Do you use relation database?", "F_REL_DB"),
-        10: TreeViewNode.question_node(None, "Do you use noSQL?", "F_NOSQL")
+        10: TreeViewNode.question_node(None, "Do you use noSQL?", "F_NOSQL"),
+
+        100: TreeViewNode.question_node(None, "Do you have caching in your application?", "F_CACHE"),
+        101: TreeViewNode.question_node(None, "Do you use Redis?", "F_REDIS")
     }
 
