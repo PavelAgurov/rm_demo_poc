@@ -22,8 +22,8 @@ Project team provides you numerated list of facts:
 ###
 Your task is to find a Yes or No answer to each question based on the facts provided. 
 Don't try to make up an answer, if there is no DIRECT answer in the given facts, the answer should be set to "None".
-If there are two conflicting answers to a question, the answer should be "Clash" and you should add a detailed explanation of the problem.
-You should also include spep by step explanation as to why you are responding this way.
+If there are two conflicting answers to a question, the answer should be "Issue" and you should add a detailed explanation of the problem.
+You should also include step by step explanation as to why you are responding this way.
 ###
 Provide your output in json format with the keys: 
 - QuestionID - ID of question
@@ -36,6 +36,35 @@ Example output:
 [ 
 {{"QuestionID": 1, "Answer": "Yes",  "Explanation": "Answer based on facts 1 and 3.", "Score": 1, "RefFacts": [1, 3]}},
 {{"QuestionID": 2, "Answer": "None", "Explanation": "There is no answer in provided facts.", "Score": 0.5, "RefFacts": [] }},
-{{"QuestionID": 2, "Answer": "Issue", "Explanation": "There are two conflicting answers in facts 2 and 6.", "Score": 0.7, "RefFacts": [2, 6] }}
+{{"QuestionID": 3, "Answer": "Issue", "Explanation": "There are two conflicting answers in facts 2 and 6.", "Score": 0.7, "RefFacts": [2, 6] }}
 ]
+"""
+
+value_item_prompt_template ="""
+You are an advanced solution architect for an IT project.
+You have numerated list of questions (separated by XML tags):
+<questions>
+{questions}
+</questions>
+###
+Project team provides you numerated list of facts (separated by XML tags):
+<facts>
+{facts}
+</facts>
+###
+Your task is to find a Yes or No answer to each question based on the facts provided. 
+Don't try to make up an questions. If you have only one question - just answer to the this one.
+###
+Don't try to make up an answer, if there is no DIRECT answer in the given facts, the answer should be set to "None".
+If there are two conflicting answers to a question, the answer should be "Issue" and you should add a detailed explanation of the problem.
+You should also include step by step explanation as to why you are responding this way.
+###
+Provide your output in json format:
+[ 
+    {{"QuestionID": 1, "Question": "question", "Answer": "Azure",  "Explanation": "Facts 1 and 3 contains answer 'Azure' .", "Score": 1, "RefFacts": [1, 3]}},
+    {{"QuestionID": 2, "Question": "question", "Answer": "None", "Explanation": "There is no answer in provided facts.", "Score": 0.5, "RefFacts": [] }},
+    {{"QuestionID": 3, "Question": "question", "Answer": "Issue", "Explanation": "There are two conflicting answers in facts 2 and 6.", "Score": 0.7, "RefFacts": [2, 6] }}
+]
+###
+Count of items in the output should be the same as count of questions.
 """

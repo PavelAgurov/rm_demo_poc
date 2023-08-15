@@ -1,8 +1,6 @@
 """
     Main APP and UI
 """
-# pylint: disable=C0301,C0103,C0411,C0303, C0305
-
 from datetime import datetime
 import json
 import os
@@ -17,17 +15,19 @@ from langchain.cache import SQLiteCache
 from langchain.callbacks import get_openai_callback
 
 from dialog_storage import DialogStorage, DialogItem
-from prompts import extract_facts_prompt_template, score_prompt_template
+from prompts import extract_facts_prompt_template, score_prompt_template, value_item_prompt_template
 from utils import get_numerated_list_string, get_fixed_json
-from navigation import Answer, TreeDialogNavigator
-from dialog_tree_json import tree_json
+from navigation import TreeNodeAnswer, TreeDialogNavigator
+from navigation_tree_json import tree_json
 from session_manager import StreamlitSessionManager
 from strings import HOW_IT_WORKS, APP_HEADER, INITIAL_INFO_MESSAGE, ADDITIONAL_INFO_MESSAGE
-from classes import CurrentQuestion, FactList
+from classes import CurrentQuestion, ExtratedFactList
 from utils_streamlit import streamlit_hack_remove_top_space
-from emulator import EMULATOR_get_fact_list, EMULATOR_set_answers, LLM_EMULATOR_INFO_HTML
+from emulator import EMULATOR_get_fact_list, EMULATOR_set_answers, EMULATOR_set_value_items, LLM_EMULATOR_INFO_HTML
 from recommendation import RecommendationManager
 from recommendation_json import recommendation_json
+from values import ValueItemAnswer, ValueItemManager
+from values_json import values_json
 # --------------------------------- Setup
 
 LLM_EMULATOR = False
@@ -65,12 +65,13 @@ with tab_main:
     header_container     = st.container()
     if LLM_EMULATOR:
         emulator_container = st.empty()
-    question_container   = st.empty()
-    input_container      = st.container()
-    input_container.text_area("Your answer or request: ", "", key="user_input", on_change= submit_user_input)
-    status_container     = st.empty()
+    question_container     = st.empty()
+    input_container        = st.container()
+    input_container.text_area("Your answer or request: ", "", key="user_input", on_change= submit_user_input)  
+    status_container       = st.empty()
     explanations_container = st.expander(label="Explanations").empty()
-    debug_container      = st.container()
+    value_item_container   = st.expander(label="Value items").empty()
+    debug_container        = st.container()
 
 with tab_apikey:
     key_header_container   = st.container()
@@ -78,11 +79,14 @@ with tab_apikey:
 
 with tab_data:
     navigation_data_container = st.expander(label="Navigation data").empty()
+    navigation_tree_container = st.expander(label="Navigation tree").empty()
+    value_items_data_container = st.expander(label="Value items data").empty()
     recommendation_data_container = st.expander(label="Recommendations").empty()
 
 with tab_debug:
     facts_from_dialog_conteiner = st.expander(label="Fact JSON").empty()
     score_result_container = st.expander(label="Score JSON").empty()
+    value_item_result_container = st.expander(label="Value items JSON").empty()
     variable_list_container = st.expander(label="Calculated variables").empty()
 
 with st.sidebar:
@@ -113,7 +117,7 @@ def get_current_question() -> CurrentQuestion:
     # end of dialog
     return CurrentQuestion(None, None, ADDITIONAL_INFO_MESSAGE)
 
-def get_fact_list_from_question_answer(node_id : int, question : str, provied_answer : str) -> FactList:
+def get_fact_list_from_question_answer(node_id : int, question : str, provied_answer : str) -> ExtratedFactList:
     """
         Get facts extracted from question and answer
     """
@@ -134,9 +138,9 @@ def get_fact_list_from_question_answer(node_id : int, question : str, provied_an
     try:
         facts_from_dialog_json = json.loads(get_fixed_json(facts_from_dialog))['it_project_facts']
         fact_list_from_a2q = [f['fact'] for f in facts_from_dialog_json]
-    except: # pylint: disable=W0718,W0702
+    except:  # noqa: E722
         error = True
-    return FactList(fact_list_from_a2q, error)
+    return ExtratedFactList(fact_list_from_a2q, error)
 
 def get_anser_value(answer_str : str) -> bool:
     """Convert answer string into bool or None"""
@@ -148,7 +152,7 @@ def get_anser_value(answer_str : str) -> bool:
     return None
 
 
-def extract_answers_from_fact_list(question_list_str : str, fact_list_str : str):
+def extract_answers_from_fact_list(dialog_navigator : TreeDialogNavigator, score_chain : LLMChain, question_list_str : str, fact_list_str : str):
     """Extract answers from fact list"""
 
     if LLM_EMULATOR:
@@ -167,10 +171,34 @@ def extract_answers_from_fact_list(question_list_str : str, fact_list_str : str)
         for answer_json in score_result_json:
             question_id  = int(answer_json["QuestionID"])
             answer_value = get_anser_value(answer_json["Answer"])
-            answer = Answer(answer_json["Score"], answer_value, answer_json["Explanation"], answer_json["RefFacts"])
+            answer = TreeNodeAnswer(answer_json["Score"], answer_value, answer_json["Explanation"], answer_json["RefFacts"])
             dialog_navigator.set_node_answer(question_id, answer)
     except Exception as error: # pylint: disable=W0718,W0702
-        explanations_container.markdown(f'Error parsing answer. JSON:\n{score_result}\n\n{error}')
+        debug_container.markdown(f'Error parsing answer. JSON:\n{score_result}\n\n{error}')
+
+def extract_value_items_from_fact_list(value_item_manager : ValueItemManager, value_item_chain : LLMChain, value_items_list_str : str, fact_list_str : str):
+    """Extract value items from fact list"""
+
+    if LLM_EMULATOR:
+        EMULATOR_set_value_items(fact_list_str, value_item_manager)
+        return
+
+    status_container.markdown('Starting LLM to extract value items...')
+    with get_openai_callback() as cb:
+        score_result = value_item_chain.run(questions = value_items_list_str, facts = fact_list_str)
+    st.session_state[SESSION_TOKEN_COUNT] += cb.total_tokens
+    status_container.markdown(f'Done. Used {cb.total_tokens} tokens.')
+    value_item_result_container.markdown(score_result)
+
+    try:
+        score_result_json = json.loads(get_fixed_json(score_result))
+        for answer_json in score_result_json:
+            question_id  = int(answer_json["QuestionID"])
+            answer       = answer_json["Answer"]
+            answer = ValueItemAnswer(answer_json["Score"], answer, answer_json["Explanation"], answer_json["RefFacts"])
+            value_item_manager.set_answer(question_id, answer)
+    except Exception as error: # pylint: disable=W0718,W0702
+        debug_container.markdown(f'Error parsing answer. JSON:\n{score_result}\n\n{error}')
 
 #------------------------------- LLM setup
 
@@ -187,16 +215,21 @@ extract_facts_prompt = PromptTemplate.from_template(extract_facts_prompt_templat
 extract_facts_chain  = LLMChain(llm=llm, prompt = extract_facts_prompt)
 score_prompt = PromptTemplate.from_template(score_prompt_template)
 score_chain  = LLMChain(llm=llm, prompt = score_prompt)
+value_item_prompt = PromptTemplate.from_template(value_item_prompt_template)
+value_item_chain  = LLMChain(llm=llm, prompt = value_item_prompt)
 
 if LLM_EMULATOR:
     emulator_container.markdown(LLM_EMULATOR_INFO_HTML, unsafe_allow_html=True) # pylint: disable=E0601
 
-#------------------------------- APP
+#------------------------------- Main objects
 
 session_manager  = StreamlitSessionManager()
 dialog_storage   = DialogStorage(session_manager)
 dialog_navigator = TreeDialogNavigator(tree_json, session_manager)
+value_item_manager = ValueItemManager(values_json, session_manager)
 recommendation_manager = RecommendationManager(recommendation_json, session_manager)
+
+#------------------------------- APP
 
 current_question = get_current_question()
 question_container.markdown(current_question.displayed_message)
@@ -224,16 +257,25 @@ if user_input:
 collected_fact_list_str = get_numerated_list_string(dialog_storage.get_collected_fact_list())
 collected_facts_container.markdown(collected_fact_list_str)
 
-# extract answers from facts
+# extract answers from collected facts
 if collected_fact_list_str:
     question_list = dialog_navigator.get_question_list_as_numerated()
-    extract_answers_from_fact_list(question_list, collected_fact_list_str)
+    extract_answers_from_fact_list(dialog_navigator, score_chain, question_list, collected_fact_list_str)
+
+    value_items_list_str = value_item_manager.get_list_as_numerated()
+    extract_value_items_from_fact_list(value_item_manager, value_item_chain, value_items_list_str, collected_fact_list_str)
 
 token_count_container.markdown(f'Tokens used: {st.session_state[SESSION_TOKEN_COUNT]}')
 question_container.markdown(get_current_question().displayed_message)
 collected_dialog_container.dataframe(dialog_storage.get_dialog_list_as_dataFrame(), use_container_width=True, hide_index=True)
 explanations_container.dataframe(dialog_navigator.get_question_list_as_dataFrame(), use_container_width=True, hide_index=True)
+
 navigation_data_container.dataframe(dialog_navigator.get_tree_as_dataFrame(), use_container_width=True, hide_index=True)
+navigation_tree_container.graphviz_chart(dialog_navigator.get_dialog_graph(True), use_container_width  = True)
+
+value_items_data_container.dataframe(value_item_manager.get_list_as_dataFrame(), use_container_width=True, hide_index=True)
+value_item_container.dataframe(value_item_manager.get_values_as_dataFrame(), use_container_width=True, hide_index=True)
+
 variable_values = dialog_navigator.get_variable_values()
 variable_list_container.markdown(variable_values)
 recommendation_container.dataframe(recommendation_manager.get_recommendation_list_as_dataFrame(variable_values), use_container_width=True, hide_index=True)

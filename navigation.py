@@ -2,19 +2,19 @@
     Navigation classes
 """
 
-# pylint: disable=C0301,C0303,C0305,C0103,C0304,C0411
-
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List
 from session_manager import BaseSessionManager
 import pandas as pd
+import graphviz
+from graphviz import Digraph
 
 class NavigationError(Exception):
     """Dialog Navigation exception"""
 
 @dataclass
-class Answer:
+class TreeNodeAnswer:
     """Answer related to the node"""
     score       : float
     answer      : bool
@@ -34,7 +34,7 @@ class TreeViewNode:
     question    : str
     variable    : str
     fixed_value : bool
-    answer      : Answer
+    answer      : TreeNodeAnswer
     def __init__(self, yes_node_id : int, no_node_id: int, question : str, variable : str, fixed_value : bool):
         self.yes_node_id = yes_node_id
         self.no_node_id  = no_node_id
@@ -64,11 +64,11 @@ class TreeViewNode:
              raise NavigationError("fixed_value can't be None for fixed_node")
         return TreeViewNode(yes_question_id, no_question_id, question, variable, fixed_value)
 
-    def set_answer(self, answer : Answer):
+    def set_answer(self, answer : TreeNodeAnswer):
         """Assign answer to the node"""
         self.answer = answer
 
-    def get_answer(self) -> Answer:
+    def get_answer(self) -> TreeNodeAnswer:
         """Get answer of the node"""
         return self.answer
 
@@ -127,14 +127,14 @@ class TreeDialogNavigator(BaseDialogNavigator):
 
     def load_state(self):
         self.clear_all_answers(False)
-        state : dict[int, Answer] = self.sessionManager.load(self.__SESSION_NAME)
+        state : dict[int, TreeNodeAnswer] = self.sessionManager.load(self.__SESSION_NAME)
         if not state:
             return
         for answer_item in state.items():
             self.set_node_answer(answer_item[0], answer_item[1])
 
     def save_state(self):
-        state = dict[int, Answer]()
+        state = dict[int, TreeNodeAnswer]()
         for node_item in self.tree_json.items():
             state[node_item[0]] = node_item[1].answer
         self.sessionManager.save(self.__SESSION_NAME, state)
@@ -179,7 +179,7 @@ class TreeDialogNavigator(BaseDialogNavigator):
             return self.tree_json[node_id]
         return None
 
-    def set_node_answer(self, node_id : int, answer : Answer):
+    def set_node_answer(self, node_id : int, answer : TreeNodeAnswer):
         """Set answer for node"""
         node = self.__get_node_by_id(node_id)
         if not node:
@@ -187,7 +187,7 @@ class TreeDialogNavigator(BaseDialogNavigator):
         node.set_answer(answer)
         self.save_state()
 
-    def get_node_answer(self, node_id : int) -> Answer:
+    def get_node_answer(self, node_id : int) -> TreeNodeAnswer:
         """Get answer for node"""
         node = self.__get_node_by_id(node_id)
         if not node:
@@ -264,3 +264,32 @@ class TreeDialogNavigator(BaseDialogNavigator):
             row = [node_item[0], node_item[1].question, node_item[1].yes_node_id, node_item[1].no_node_id, node_item[1].variable]
             result.append(row)
         return pd.DataFrame(result, columns = self._question_data_columns)
+
+    def get_dialog_graph(self, render_into_png) -> Digraph:
+        """
+            Return dialog graph
+        """
+        # Create a graphlib graph object
+        graph = graphviz.Digraph(
+            format = 'png'
+        )
+        
+        has_start = False
+        for node_item in self.tree_json.items():
+            node_id = node_item[0]
+            node = node_item[1]
+
+            if not has_start:
+                graph.edge('START', f'[{node_id}] {node.question}')
+                has_start = True
+
+            if node.yes_node_id:
+                yes_node = self.__get_node_by_id(node.yes_node_id)
+                graph.edge(f'[{node_id}] {node.question}', f'[{node.yes_node_id}] {yes_node.question}', "yes")
+            if node.no_node_id:
+                no_node = self.__get_node_by_id(node.no_node_id)
+                graph.edge(f'[{node_id}] {node.question}', f'[{node.no_node_id}] {no_node.question}', "no")
+
+        if render_into_png:
+            graph.render(format='png')              
+        return graph

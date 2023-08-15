@@ -7,7 +7,7 @@ from navigation import TreeViewNode
 
 tree_json : dict[int, TreeViewNode] = { # Yes/No nodes or Document name
         1: TreeViewNode.branch_node(2, 3, "Is it migration of existed project?", "F_MIGRATION"),
-        2: TreeViewNode.question_node(3, "Should project be optimized for the cloud?", "F_CLOUD_OPT"),
+        2: TreeViewNode.question_node(3, "Should project use cloud provider for example Azure, GCP, TIBCO, ATOS?", "F_CLOUD"),
         3: TreeViewNode.question_node(4, "Can project be containerized?", "F_CONTAINERIZED"),
         4: TreeViewNode.branch_node(5, 8, "Has project API?", "F_HAS_API"),
         5: TreeViewNode.question_node(6, "Do you use RestAPI?", "F_REST_API"),

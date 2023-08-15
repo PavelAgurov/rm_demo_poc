@@ -16,9 +16,9 @@ class CurrentQuestion:
     displayed_message : str
 
 @dataclass
-class FactList:
+class ExtratedFactList:
     """
-        Fact list
+        Fact list extracted from dialogs
     """
     facts : list[str]
     error : bool

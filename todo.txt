@@ -1,4 +1,5 @@
 1. key words for question
 2. Split into chunks
 3. Validate all or only by navigation (if tree is big) - flag for branch?
-
+4. Number value (question: "How many endpoint do you have?")
+5. Varibale node (depends on variable value)
