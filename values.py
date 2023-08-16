@@ -1,7 +1,7 @@
 """
     Value items classes
 """
-# pylint: disable=C0301,C0103
+# pylint: disable=C0301,C0103,C0411
 
 from abc import ABC
 from dataclasses import dataclass
@@ -107,6 +107,7 @@ class ValueItemManager(ABC):
         return pd.DataFrame(result, columns = self._value_items_values_columns)
 
     def get_list_as_numerated(self) -> str:
+        """ Get question list as numerated list"""
         result = []
         for node_item in self.values_json.items():
             result.append(f'{node_item[0]}. {node_item[1].question}')
@@ -139,7 +140,7 @@ class ValueItemManager(ABC):
             if not node_item[1].variable or  not node_item[1].answer:
                 continue
             answer = node_item[1].answer.answer
-            if answer is None:
+            if answer is None or answer == 'None':
                 continue
             result[node_item[1].variable] = answer
         return result

@@ -11,7 +11,7 @@ from session_manager import BaseSessionManager
 @dataclass
 class RecommendationItem:
     """Recommendation"""
-    variables : dict[str, bool]
+    variables : dict[str, str]
     recommendation : str
 
 class RecommendationManager:
@@ -35,14 +35,15 @@ class RecommendationManager:
         result = self.get_full_recomendation_list()
         return pd.DataFrame(result, columns=["Variables", "Recommendation"])
 
-    def variable_has_required_value(self, variable_name, required_value, variable_values : dict[str, bool]) -> bool:
+    def variable_has_required_value(self, variable_name : str, required_value : str, variable_values : dict[str, str]) -> bool:
         """Check if variable has required value from variable list"""
         if variable_name not in variable_values:
             return False
-        variable_value = variable_values[variable_name]
+        variable_value = str(variable_values[variable_name]).lower().strip()
+        required_value = str(required_value).lower().strip()
         return variable_value == required_value
 
-    def get_recommendation_list(self, variable_values : dict[str, bool]) -> list[str]:
+    def get_recommendation_list(self, variable_values : dict[str, str]) -> list[str]:
         """Get list of recommendation based on variables"""
         result = []
         for r in self._storage:
@@ -55,7 +56,7 @@ class RecommendationManager:
                 result.append(r.recommendation)
         return result
 
-    def get_recommendation_list_as_dataFrame(self, variable_values : dict[str, bool]) -> pd.DataFrame:
+    def get_recommendation_list_as_dataFrame(self, variable_values : dict[str, str]) -> pd.DataFrame:
         """Get list of recommendation based on variables"""
         result = self.get_recommendation_list(variable_values)
         return pd.DataFrame(result, columns=["Recommendation"])

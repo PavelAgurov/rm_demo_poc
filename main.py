@@ -6,6 +6,7 @@
 from datetime import datetime
 import json
 import os
+import pandas as pd
 
 import streamlit as st
 
@@ -73,6 +74,7 @@ with tab_main:
     status_container       = st.empty()
     explanations_container = st.expander(label="Explanations").empty()
     value_item_container   = st.expander(label="Value items").empty()
+    variable_list_container = st.expander(label="Calculated variables").empty()
     debug_container        = st.container()
 
 with tab_apikey:
@@ -89,7 +91,6 @@ with tab_debug:
     facts_from_dialog_conteiner = st.expander(label="Fact JSON").empty()
     score_result_container = st.expander(label="Score JSON").empty()
     value_item_result_container = st.expander(label="Value items JSON").empty()
-    variable_list_container = st.expander(label="Calculated variables").empty()
 
 with st.sidebar:
     collected_dialog_container = st.expander(label="Saved dialog").empty()
@@ -291,7 +292,7 @@ value_item_container.dataframe(value_item_manager.get_values_as_dataFrame(), use
 variable_values_from_dialog : dict[str, bool] = dialog_navigator.get_variable_values()
 variable_value_from_value_items : dict[str, bool] = value_item_manager.get_variable_values()
 variable_values = variable_values_from_dialog | variable_value_from_value_items
-variable_list_container.markdown(variable_values)
+variable_list_container.dataframe(pd.DataFrame([[v[0], v[1]] for v in variable_values.items()], columns=['Name', 'Value']), use_container_width=True, hide_index=True)
 recommendation_container.dataframe(recommendation_manager.get_recommendation_list_as_dataFrame(variable_values), use_container_width=True, hide_index=True)
 recommendation_data_container.dataframe(recommendation_manager.get_full_recomendation_list_as_dataFrame(), use_container_width=True, hide_index=True)
 

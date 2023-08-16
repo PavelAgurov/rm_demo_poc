@@ -9,11 +9,11 @@ values_items_json : dict[int, ValueItem] = {
         1: ValueItem("What cloud is used in the project?", "F_CLOUD_PROVIDER"),
         2: ValueItem("From what platform is project migrated?", "F_MIGRATE_FROM"),
         3: ValueItem("What serverless service is used in the project?","F_SERVERLESS_SERVICE"),
-        4: ValueItem("What compute service (VMs, Azure Kubernetes Service) is used in the project?", "F_COMPUTE_SERVICE"),
+        4: ValueItem("What compute service (for example VMs, Azure Kubernetes Service) is used in the project?", "F_COMPUTE_SERVICE"),
         5: ValueItem("What hosting is used in the project?", "F_HOSTING_SERVICE"),
-        6: ValueItem("What relational database is used in the project?", "F_RELATIONAL_DB_SERVICE"),
-        7: ValueItem("What NoSQL is used in the project?", "F_NOSQL_SERVICE"),
-        8: ValueItem("What caching is used in the project?", "F_CACHING_SERVICE"),
+        6: ValueItem("What relational database is used in the project (for example MS SQL, Azure SQL, PostgreSQL)?", "F_RELATIONAL_DB_SERVICE"),
+        7: ValueItem("What noSQL is used in the project (for example MongoDB, Azure Cosmos DB)?", "F_NOSQL_SERVICE"),
+        8: ValueItem("What caching is used in the project (for example Redis)?", "F_CACHING_SERVICE"),
         9: ValueItem("What storage is used in the project?", "F_STORAGE_SERVICE")
     }
 
