@@ -3,3 +3,4 @@
 3. Validate all or only by navigation (if tree is big) - flag for branch?
 4. Number value (question: "How many endpoint do you have?")
 5. Varibale node (depends on variable value)
+6. Variable checking (if we have variable that in recommendations)

@@ -1,7 +1,7 @@
 """
     Navigation classes
 """
-# pylint: disable=C0301,C0103,C0411
+# pylint: disable=C0301,C0103,C0411,R0913,W0311
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -48,21 +48,21 @@ class TreeViewNode:
     def branch_node(cls, yes_question_id : int, no_question_id: int, question : str, variable : str = None):
         """Create branch node - redirect depends on yes/no"""
         if question is None:
-             raise NavigationError("Question can't be None for branch_node")
+            raise NavigationError("Question can't be None for branch_node")
         return TreeViewNode(yes_question_id, no_question_id, question, variable, None)
 
     @classmethod
     def question_node(cls, next_node : int, question : str, variable : str = None):
         """Create question node - it's only question and one path to redirect"""
         if question is None:
-             raise NavigationError("Question can't be None for question_node")
+            raise NavigationError("Question can't be None for question_node")
         return TreeViewNode(next_node, next_node, question, variable, None)
 
     @classmethod
     def fixed_node(cls, yes_question_id : int, no_question_id: int, question : str, variable : str, fixed_value : bool):
         """Create fixed value node - redirect depends on yes/no, but only if we have required answer"""
         if fixed_value is None:
-             raise NavigationError("fixed_value can't be None for fixed_node")
+            raise NavigationError("fixed_value can't be None for fixed_node")
         return TreeViewNode(yes_question_id, no_question_id, question, variable, fixed_value)
 
     def set_answer(self, answer : TreeNodeAnswer):
@@ -257,7 +257,16 @@ class TreeDialogNavigator(BaseDialogNavigator):
                 continue
             result[node_item[1].variable] = answer_bool
         return result
-            
+
+    def get_all_variable_names(self) -> list[str]:
+        """Get list of variables names"""
+        result = []
+        for node_item in self.tree_json.items():
+            if not node_item[1].variable:
+                continue
+            result.append(node_item[1].variable)
+        return result
+
     def get_tree_as_dataFrame(self) -> pd.DataFrame:
         """Return tree as DataFrame"""
         result = []
@@ -274,23 +283,39 @@ class TreeDialogNavigator(BaseDialogNavigator):
         graph = graphviz.Digraph(
             format = 'png'
         )
-        
+
+        graph.node('START', 'START')
+        for node_item in self.tree_json.items():
+            node_id = node_item[0]
+            node = node_item[1]
+            description = f'[{node_id}] {node.question}'
+            if node.variable:
+                description+= f'\n{node.variable}'
+            if node.fixed_value:
+                description+= f'== {node.fixed_value}'
+            graph.node(str(node_id), description)
+
         has_start = False
         for node_item in self.tree_json.items():
             node_id = node_item[0]
             node = node_item[1]
 
-            if not has_start:
-                graph.edge('START', f'[{node_id}] {node.question}')
-                has_start = True
+            try:
+                if not has_start:
+                    graph.edge('START', str(node_id))
+                    has_start = True
 
-            if node.yes_node_id:
-                yes_node = self.__get_node_by_id(node.yes_node_id)
-                graph.edge(f'[{node_id}] {node.question}', f'[{node.yes_node_id}] {yes_node.question}', "yes")
-            if node.no_node_id:
-                no_node = self.__get_node_by_id(node.no_node_id)
-                graph.edge(f'[{node_id}] {node.question}', f'[{node.no_node_id}] {no_node.question}', "no")
-
+                if node.yes_node_id != node.no_node_id:
+                    if node.yes_node_id:
+                        graph.edge(str(node_id), str(node.yes_node_id), "yes")
+                    if node.no_node_id:
+                        graph.edge(str(node_id), str(node.no_node_id), "no")
+                else:
+                    if node.yes_node_id:
+                        graph.edge(str(node_id), str(node.yes_node_id))
+            except Exception as error: # pylint: disable=W0718,W0702
+                raise NavigationError(f'Error: {error}\n. node_id={node_id}') from error
+            
         if render_into_png:
             graph.render(format='png')              
         return graph

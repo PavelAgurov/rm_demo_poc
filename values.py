@@ -113,6 +113,15 @@ class ValueItemManager(ABC):
             result.append(f'{node_item[0]}. {node_item[1].question}')
         return '\n'.join(result)
 
+    def get_all_variable_names(self) -> list[str]:
+        """Get list of variables names"""
+        result = []
+        for node_item in self.values_json.items():
+            if not node_item[1].variable:
+                continue
+            result.append(node_item[1].variable)
+        return result
+
     def __get_value_item_by_id(self, node_id : int) -> ValueItemAnswer:
         if node_id in self.values_json:
             return self.values_json[node_id]

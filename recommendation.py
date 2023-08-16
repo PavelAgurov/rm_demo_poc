@@ -61,3 +61,12 @@ class RecommendationManager:
         result = self.get_recommendation_list(variable_values)
         return pd.DataFrame(result, columns=["Recommendation"])
 
+    def get_unknown_valiable_list(self, all_variables : list[str]) -> list[str]:
+        """Validate variables"""
+        result = []
+        for r in self._storage:
+            required_variables = r.variables
+            for v in required_variables.items():
+                if v[0] not in all_variables:
+                    result.append(v[0])
+        return result

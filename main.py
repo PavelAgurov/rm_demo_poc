@@ -1,7 +1,7 @@
 """
     Main APP and UI
 """
-# pylint: disable=C0301,C0103
+# pylint: disable=C0301,C0103,C0303
 
 from datetime import datetime
 import json
@@ -59,6 +59,7 @@ def submit_user_input():
 st.set_page_config(page_title= APP_HEADER, layout="wide")
 st.title(APP_HEADER)
 
+error_data_container     = st.empty()
 recommendation_container = st.container().empty()
 
 streamlit_hack_remove_top_space()
@@ -83,7 +84,9 @@ with tab_apikey:
 
 with tab_data:
     navigation_data_container = st.expander(label="Navigation data").empty()
-    navigation_tree_container = st.expander(label="Navigation tree").empty()
+    navigation_tree_container_expander = st.expander(label="Navigation tree")
+    navigation_tree_container_link = navigation_tree_container_expander.empty()
+    navigation_tree_container = navigation_tree_container_expander.empty()
     value_items_data_container = st.expander(label="Value items data").empty()
     recommendation_data_container = st.expander(label="Recommendations").empty()
 
@@ -242,10 +245,26 @@ dialog_navigator = TreeDialogNavigator(tree_json, session_manager)
 value_item_manager = ValueItemManager(values_items_json, session_manager)
 recommendation_manager = RecommendationManager(recommendation_json, session_manager)
 
+#------------------------------- Minor data validations
+data_errors = []
+all_variables = dialog_navigator.get_all_variable_names() + value_item_manager.get_all_variable_names()
+duplicates = list(set([x for x in all_variables if all_variables.count(x) > 1]))
+if len(duplicates) > 0:
+    data_errors.append(f'There are duplicates in the data: {duplicates}')
+recommendation_errors = recommendation_manager.get_unknown_valiable_list(all_variables)
+if len(recommendation_errors) > 0:
+    data_errors.append(f'There are unknown variable in recommendations: {recommendation_errors}')
+if len(data_errors) > 0:
+    error_message = "<br>".join(data_errors)
+    error_message = f'<p style="color:white; background-color:red">{error_message}</p>'
+    error_data_container.markdown(error_message, unsafe_allow_html=True)
 #------------------------------- APP
 
 current_question = get_current_question()
 question_container.markdown(current_question.displayed_message)
+
+with open('Digraph.gv.png', 'rb') as f:
+    navigation_tree_container_link.download_button('Download Png', f, file_name='Digraph.png') 
 
 user_input : str = st.session_state[SESSION_SAVED_USER_INPUT]
 if user_input:
