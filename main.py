@@ -263,8 +263,9 @@ if len(data_errors) > 0:
 current_question = get_current_question()
 question_container.markdown(current_question.displayed_message)
 
-with open('Digraph.gv.png', 'rb') as f:
-    navigation_tree_container_link.download_button('Download Png', f, file_name='Digraph.png') 
+if os.path.isfile(dialog_navigator.file_name):
+    with open(dialog_navigator.file_name, 'rb') as f:
+        navigation_tree_container_link.download_button('Download Png', f, file_name='digraph.png') 
 
 user_input : str = st.session_state[SESSION_SAVED_USER_INPUT]
 if user_input:
