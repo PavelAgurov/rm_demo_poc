@@ -4,4 +4,4 @@ streamlit
 streamlit-chat
 tiktoken
 sentence-transformers
-graphviz
+
