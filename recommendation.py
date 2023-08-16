@@ -37,7 +37,7 @@ class RecommendationManager:
 
     def variable_has_required_value(self, variable_name, required_value, variable_values : dict[str, bool]) -> bool:
         """Check if variable has required value from variable list"""
-        if not variable_name in variable_values:
+        if variable_name not in variable_values:
             return False
         variable_value = variable_values[variable_name]
         return variable_value == required_value

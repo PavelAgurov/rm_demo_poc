@@ -22,7 +22,7 @@ class StreamlitSessionManager(BaseSessionManager):
         st.session_state[name] = obj
 
     def load(self, name : str) -> Any:
-        if not name in st.session_state:
+        if name not in st.session_state:
             return None
         return st.session_state[name]
 
@@ -37,6 +37,6 @@ class MemorySessionManager(BaseSessionManager):
         self._storage[name] = obj
 
     def load(self, name : str) -> Any:
-        if not name in self._storage:
+        if name not in self._storage:
             return None
         return self._storage[name]

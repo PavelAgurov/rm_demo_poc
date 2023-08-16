@@ -1,6 +1,7 @@
 """
     Value items classes
 """
+# pylint: disable=C0301,C0103
 
 from abc import ABC
 from dataclasses import dataclass
@@ -111,22 +112,34 @@ class ValueItemManager(ABC):
             result.append(f'{node_item[0]}. {node_item[1].question}')
         return '\n'.join(result)
 
-    def __get_fact_item_by_id(self, node_id : int) -> ValueItemAnswer:
+    def __get_value_item_by_id(self, node_id : int) -> ValueItemAnswer:
         if node_id in self.values_json:
             return self.values_json[node_id]
         return None
 
-    def set_answer(self, fact_item_id : int, answer : ValueItemAnswer):
-        """Set answer for fact item"""
-        fact_item = self.__get_fact_item_by_id(fact_item_id)
-        if not fact_item:
-            raise ValueItemError(f"Unknown nodeId {fact_item_id}")
-        fact_item.set_answer(answer)
+    def set_answer(self, value_item_id : int, answer : ValueItemAnswer):
+        """Set answer for value item"""
+        value_item = self.__get_value_item_by_id(value_item_id)
+        if not value_item:
+            raise ValueItemError(f"Unknown value item {value_item_id}")
+        value_item.set_answer(answer)
         self.save_state()
 
-    def get_answer(self, fact_item_id : int) -> ValueItemAnswer:
-        """Get answer for fact item"""
-        fact_item = self.__get_fact_item_by_id(fact_item_id)
-        if not fact_item:
+    def get_answer(self, value_item_id : int) -> ValueItemAnswer:
+        """Get answer for value item"""
+        value_item = self.__get_value_item_by_id(value_item_id)
+        if not value_item:
             return None
-        return fact_item.get_answer()
+        return value_item.get_answer()
+
+    def get_variable_values(self) -> dict[str, bool]:
+        """Get list of variables"""
+        result = dict[str, bool]()
+        for node_item in self.values_json.items():
+            if not node_item[1].variable or  not node_item[1].answer:
+                continue
+            answer = node_item[1].answer.answer
+            if answer is None:
+                continue
+            result[node_item[1].variable] = answer
+        return result

@@ -1,6 +1,7 @@
 """
     Navigation classes
 """
+# pylint: disable=C0301,C0103,C0411
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass

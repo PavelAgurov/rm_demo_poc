@@ -1,6 +1,8 @@
 """
     Main APP and UI
 """
+# pylint: disable=C0301,C0103
+
 from datetime import datetime
 import json
 import os
@@ -27,7 +29,7 @@ from emulator import EMULATOR_get_fact_list, EMULATOR_set_answers, EMULATOR_set_
 from recommendation import RecommendationManager
 from recommendation_json import recommendation_json
 from values import ValueItemAnswer, ValueItemManager
-from values_json import values_json
+from values_json import values_items_json
 # --------------------------------- Setup
 
 LLM_EMULATOR = False
@@ -47,9 +49,9 @@ if SESSION_INIT_INFO_PROVIDED not in st.session_state:
 
 def submit_user_input():
     """Save user input and clear intputbox"""
-    s : str = st.session_state.user_input
-    s = s.strip()
-    st.session_state[SESSION_SAVED_USER_INPUT] = s
+    input_str : str = st.session_state.user_input
+    input_str = input_str.strip()
+    st.session_state[SESSION_SAVED_USER_INPUT] = input_str
     st.session_state.user_input = ""
 
 # ------------------------------- UI
@@ -138,7 +140,7 @@ def get_fact_list_from_question_answer(node_id : int, question : str, provied_an
     try:
         facts_from_dialog_json = json.loads(get_fixed_json(facts_from_dialog))['it_project_facts']
         fact_list_from_a2q = [f['fact'] for f in facts_from_dialog_json]
-    except:  # noqa: E722
+    except:  # noqa: E722 # pylint: disable=W0702
         error = True
     return ExtratedFactList(fact_list_from_a2q, error)
 
@@ -152,16 +154,21 @@ def get_anser_value(answer_str : str) -> bool:
     return None
 
 
-def extract_answers_from_fact_list(dialog_navigator : TreeDialogNavigator, score_chain : LLMChain, question_list_str : str, fact_list_str : str):
+def extract_answers_from_fact_list(
+        navigator : TreeDialogNavigator,
+        chain : LLMChain,
+        question_list_str : str,
+        fact_list_str : str
+    ):
     """Extract answers from fact list"""
 
     if LLM_EMULATOR:
-        EMULATOR_set_answers(fact_list_str, dialog_navigator)
+        EMULATOR_set_answers(fact_list_str, navigator)
         return
 
     status_container.markdown('Starting LLM to extract answers...')
     with get_openai_callback() as cb:
-        score_result = score_chain.run(questions = question_list_str, facts = fact_list_str)
+        score_result = chain.run(questions = question_list_str, facts = fact_list_str)
     st.session_state[SESSION_TOKEN_COUNT] += cb.total_tokens
     status_container.markdown(f'Done. Used {cb.total_tokens} tokens.')
     score_result_container.markdown(score_result)
@@ -172,20 +179,25 @@ def extract_answers_from_fact_list(dialog_navigator : TreeDialogNavigator, score
             question_id  = int(answer_json["QuestionID"])
             answer_value = get_anser_value(answer_json["Answer"])
             answer = TreeNodeAnswer(answer_json["Score"], answer_value, answer_json["Explanation"], answer_json["RefFacts"])
-            dialog_navigator.set_node_answer(question_id, answer)
+            navigator.set_node_answer(question_id, answer)
     except Exception as error: # pylint: disable=W0718,W0702
         debug_container.markdown(f'Error parsing answer. JSON:\n{score_result}\n\n{error}')
 
-def extract_value_items_from_fact_list(value_item_manager : ValueItemManager, value_item_chain : LLMChain, value_items_list_str : str, fact_list_str : str):
+def extract_value_items_from_fact_list(
+        manager : ValueItemManager,
+        chain : LLMChain,
+        items_list_str : str,
+        fact_list_str : str
+    ):
     """Extract value items from fact list"""
 
     if LLM_EMULATOR:
-        EMULATOR_set_value_items(fact_list_str, value_item_manager)
+        EMULATOR_set_value_items(fact_list_str, manager)
         return
 
     status_container.markdown('Starting LLM to extract value items...')
     with get_openai_callback() as cb:
-        score_result = value_item_chain.run(questions = value_items_list_str, facts = fact_list_str)
+        score_result = chain.run(questions = items_list_str, facts = fact_list_str)
     st.session_state[SESSION_TOKEN_COUNT] += cb.total_tokens
     status_container.markdown(f'Done. Used {cb.total_tokens} tokens.')
     value_item_result_container.markdown(score_result)
@@ -196,7 +208,7 @@ def extract_value_items_from_fact_list(value_item_manager : ValueItemManager, va
             question_id  = int(answer_json["QuestionID"])
             answer       = answer_json["Answer"]
             answer = ValueItemAnswer(answer_json["Score"], answer, answer_json["Explanation"], answer_json["RefFacts"])
-            value_item_manager.set_answer(question_id, answer)
+            manager.set_answer(question_id, answer)
     except Exception as error: # pylint: disable=W0718,W0702
         debug_container.markdown(f'Error parsing answer. JSON:\n{score_result}\n\n{error}')
 
@@ -226,7 +238,7 @@ if LLM_EMULATOR:
 session_manager  = StreamlitSessionManager()
 dialog_storage   = DialogStorage(session_manager)
 dialog_navigator = TreeDialogNavigator(tree_json, session_manager)
-value_item_manager = ValueItemManager(values_json, session_manager)
+value_item_manager = ValueItemManager(values_items_json, session_manager)
 recommendation_manager = RecommendationManager(recommendation_json, session_manager)
 
 #------------------------------- APP
@@ -276,7 +288,9 @@ navigation_tree_container.graphviz_chart(dialog_navigator.get_dialog_graph(True)
 value_items_data_container.dataframe(value_item_manager.get_list_as_dataFrame(), use_container_width=True, hide_index=True)
 value_item_container.dataframe(value_item_manager.get_values_as_dataFrame(), use_container_width=True, hide_index=True)
 
-variable_values = dialog_navigator.get_variable_values()
+variable_values_from_dialog : dict[str, bool] = dialog_navigator.get_variable_values()
+variable_value_from_value_items : dict[str, bool] = value_item_manager.get_variable_values()
+variable_values = variable_values_from_dialog | variable_value_from_value_items
 variable_list_container.markdown(variable_values)
 recommendation_container.dataframe(recommendation_manager.get_recommendation_list_as_dataFrame(variable_values), use_container_width=True, hide_index=True)
 recommendation_data_container.dataframe(recommendation_manager.get_full_recomendation_list_as_dataFrame(), use_container_width=True, hide_index=True)
