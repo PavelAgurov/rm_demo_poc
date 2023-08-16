@@ -122,6 +122,8 @@ class TreeDialogNavigator(BaseDialogNavigator):
     _question_list_columns = ["#", 'Question', 'Answer', 'Explanation', 'References', 'Score']
     _question_data_columns = ["#", 'Question', 'Yes', 'No', 'Variable']
 
+    file_name = 'Digraph.gv.png'
+
     def __init__(self, tree_json : dict[int, TreeViewNode], sessionManager : BaseSessionManager):
         self.tree_json = tree_json
         super().__init__("TreeView", sessionManager)
