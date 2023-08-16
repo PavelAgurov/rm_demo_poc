@@ -12,7 +12,7 @@ Provide answer in JSON format with fields:
 <answer>{answer}</answer>
 """
 
-score_prompt_template = """/
+score_all_prompt_template = """/
 You are an advanced solution architect for an IT project.
 You have numerated list of questions:
 {questions}
@@ -67,4 +67,28 @@ Provide your output in json format:
 ]
 ###
 Count of items in the output should be the same as count of questions.
+"""
+
+score_one_prompt_template="""
+You are an advanced solution architect for an IT project.
+Project team provides you numerated list of facts.
+<facts_list>
+{facts}
+</facts_list>
+
+Your task is to find answer Yes or No to the question based on ALL facts provided. 
+Don't try to make up an answer, if there is no DIRECT answer in the given facts, the answer should be "None". 
+If there are conflicting answers to a question, the answer should be "Issue". 
+Check all facts before answer.
+
+Provide your output in json format:
+[ 
+    {{"Answer": "Yes",  "Explanation": "Provide detailed explanation of answer here", "Score": 1, "RefFacts": [1, 3]}},
+    {{"Answer": "None", "Explanation": "Provide detailed explanation why facts have no answer", "Score": 0, "RefFacts": [] }},
+    {{"Answer": "Issue", "Explanation": "Provide detailed explanation of conflicting answers.", "Score": 0.5, "RefFacts": [2, 6] }}
+]
+
+<question>
+{question}
+</question>
 """

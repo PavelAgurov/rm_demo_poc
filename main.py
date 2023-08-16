@@ -18,9 +18,9 @@ from langchain.cache import SQLiteCache
 from langchain.callbacks import get_openai_callback
 
 from dialog_storage import DialogStorage, DialogItem
-from prompts import extract_facts_prompt_template, score_prompt_template, value_item_prompt_template
+from prompts import extract_facts_prompt_template, score_all_prompt_template, value_item_prompt_template, score_one_prompt_template
 from utils import get_numerated_list_string, get_fixed_json
-from navigation import TreeNodeAnswer, TreeDialogNavigator
+from navigation import TreeNodeAnswer, TreeDialogNavigator, BaseNavigationQuestion
 from navigation_tree_json import tree_json
 from session_manager import StreamlitSessionManager
 from strings import HOW_IT_WORKS, APP_HEADER, INITIAL_INFO_MESSAGE, ADDITIONAL_INFO_MESSAGE
@@ -64,7 +64,7 @@ recommendation_container = st.container().empty()
 
 streamlit_hack_remove_top_space()
 
-tab_main, tab_apikey, tab_data, tab_debug = st.tabs(["Request", "Settings", "Data", "Debug"])
+tab_main, tab_setting, tab_data, tab_debug = st.tabs(["Request", "Settings", "Data", "Debug"])
 with tab_main:
     header_container     = st.container()
     if LLM_EMULATOR:
@@ -78,9 +78,9 @@ with tab_main:
     variable_list_container = st.expander(label="Calculated variables").empty()
     debug_container        = st.container()
 
-with tab_apikey:
-    key_header_container   = st.container()
-    open_api_key = key_header_container.text_input("OpenAPI Key: ", "", key="open_api_key")
+with tab_setting:
+    open_api_key = st.text_input("OpenAPI Key: ", "", key="open_api_key")
+    cb_process_all_question = st.checkbox(label="Process all questions at once", value=False)
 
 with tab_data:
     navigation_data_container = st.expander(label="Navigation data").empty()
@@ -104,7 +104,7 @@ header_container.markdown(HOW_IT_WORKS, unsafe_allow_html=True)
 
 #------------------------------- Functions
 
-def get_current_question() -> CurrentQuestion:
+def get_current_question(html_view : bool) -> CurrentQuestion:
     """
         Get current question
     """
@@ -117,8 +117,11 @@ def get_current_question() -> CurrentQuestion:
     dialog_node_id = dialog_navigator.get_next_nodeId() 
     if dialog_node_id: # it's not end of dialog yet
         question = dialog_navigator.get_question_by_nodeId(dialog_node_id)
-        message = f'[{dialog_node_id}] {question}'
-        return CurrentQuestion(dialog_node_id, question, message)
+        if not html_view:
+            message = f'[{dialog_node_id}] {question.question}\n{question.context}'
+        else:
+            message = f'[{dialog_node_id}] {question.question}<br/>{question.context}'
+        return CurrentQuestion(dialog_node_id, question.question, message)
 
     # end of dialog
     return CurrentQuestion(None, None, ADDITIONAL_INFO_MESSAGE)
@@ -187,6 +190,33 @@ def extract_answers_from_fact_list(
     except Exception as error: # pylint: disable=W0718,W0702
         debug_container.markdown(f'Error parsing answer. JSON:\n{score_result}\n\n{error}')
 
+def extract_answers_from_fact_list_one(
+        navigator : TreeDialogNavigator,
+        chain : LLMChain,
+        question_list : list[BaseNavigationQuestion],
+        fact_list_str : str
+    ):
+    """Extract answers from fact list one by one"""
+    score_result_list = []
+    for question in question_list:
+        status_container.markdown(f'Starting LLM to extract answers {question.question_id}/{len(question_list)}...')
+        with get_openai_callback() as cb:
+            score_result = chain.run(question = question, facts = fact_list_str)
+        st.session_state[SESSION_TOKEN_COUNT] += cb.total_tokens
+        status_container.markdown(f'Done. Used {cb.total_tokens} tokens.')
+        score_result_list.append(score_result)
+
+        try:
+            score_result_json = json.loads(get_fixed_json(score_result))
+            for answer_json in score_result_json:
+                answer_value = get_anser_value(answer_json["Answer"])
+                answer = TreeNodeAnswer(answer_json["Score"], answer_value, answer_json["Explanation"], answer_json["RefFacts"])
+                navigator.set_node_answer(question.question_id, answer)
+        except Exception as error: # pylint: disable=W0718,W0702
+            debug_container.markdown(f'Error parsing answer. JSON:\n{score_result}\n\n{error}')
+    score_result_container.markdown("\n\n".join(score_result_list))
+
+
 def extract_value_items_from_fact_list(
         manager : ValueItemManager,
         chain : LLMChain,
@@ -229,8 +259,10 @@ llm = ChatOpenAI(model_name = "gpt-3.5-turbo", openai_api_key = LLM_OPENAI_API_K
 
 extract_facts_prompt = PromptTemplate.from_template(extract_facts_prompt_template)
 extract_facts_chain  = LLMChain(llm=llm, prompt = extract_facts_prompt)
-score_prompt = PromptTemplate.from_template(score_prompt_template)
-score_chain  = LLMChain(llm=llm, prompt = score_prompt)
+score_all_prompt = PromptTemplate.from_template(score_all_prompt_template)
+score_all_chain  = LLMChain(llm=llm, prompt = score_all_prompt)
+score_one_prompt = PromptTemplate.from_template(score_one_prompt_template)
+score_one_chain  = LLMChain(llm=llm, prompt = score_one_prompt)
 value_item_prompt = PromptTemplate.from_template(value_item_prompt_template)
 value_item_chain  = LLMChain(llm=llm, prompt = value_item_prompt)
 
@@ -260,12 +292,8 @@ if len(data_errors) > 0:
     error_data_container.markdown(error_message, unsafe_allow_html=True)
 #------------------------------- APP
 
-current_question = get_current_question()
-question_container.markdown(current_question.displayed_message)
-
-if os.path.isfile(dialog_navigator.file_name):
-    with open(dialog_navigator.file_name, 'rb') as f:
-        navigation_tree_container_link.download_button('Download Png', f, file_name='digraph.png') 
+current_question = get_current_question(True)
+question_container.markdown(current_question.displayed_message, unsafe_allow_html=True)
 
 user_input : str = st.session_state[SESSION_SAVED_USER_INPUT]
 if user_input:
@@ -292,14 +320,18 @@ collected_facts_container.markdown(collected_fact_list_str)
 
 # extract answers from collected facts
 if collected_fact_list_str:
-    question_list = dialog_navigator.get_question_list_as_numerated()
-    extract_answers_from_fact_list(dialog_navigator, score_chain, question_list, collected_fact_list_str)
+    if cb_process_all_question:
+        numerated_question_list_str = dialog_navigator.get_question_list_as_numerated()
+        extract_answers_from_fact_list(dialog_navigator, score_all_chain, numerated_question_list_str, collected_fact_list_str)
+    else:
+        full_question_list = dialog_navigator.get_question_list()
+        extract_answers_from_fact_list_one(dialog_navigator, score_one_chain, full_question_list, collected_fact_list_str)
 
     value_items_list_str = value_item_manager.get_list_as_numerated()
     extract_value_items_from_fact_list(value_item_manager, value_item_chain, value_items_list_str, collected_fact_list_str)
 
 token_count_container.markdown(f'Tokens used: {st.session_state[SESSION_TOKEN_COUNT]}')
-question_container.markdown(get_current_question().displayed_message)
+question_container.markdown(get_current_question(True).displayed_message, unsafe_allow_html=True)
 collected_dialog_container.dataframe(dialog_storage.get_dialog_list_as_dataFrame(), use_container_width=True, hide_index=True)
 explanations_container.dataframe(dialog_navigator.get_question_list_as_dataFrame(), use_container_width=True, hide_index=True)
 
@@ -316,3 +348,7 @@ variable_list_container.dataframe(pd.DataFrame([[v[0], v[1]] for v in variable_v
 recommendation_container.dataframe(recommendation_manager.get_recommendation_list_as_dataFrame(variable_values), use_container_width=True, hide_index=True)
 recommendation_data_container.dataframe(recommendation_manager.get_full_recomendation_list_as_dataFrame(), use_container_width=True, hide_index=True)
 
+# if png was generated - we can download it
+if os.path.isfile(dialog_navigator.file_name):
+    with open(dialog_navigator.file_name, 'rb') as f:
+        navigation_tree_container_link.download_button('Download Png', f, file_name='digraph.png') 

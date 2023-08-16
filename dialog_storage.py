@@ -15,7 +15,7 @@ class DialogItem:
     created : datetime
     question : str
     answer : str
-    facts : []
+    facts : list[str]
     error : bool
 
 class DialogStorage:
@@ -63,6 +63,8 @@ class DialogStorage:
             if no_error_only and data_item.error:
                 continue
             for f in data_item.facts:
+                if not f.endswith('.'):
+                    f+='.'
                 result.append(f)
         result = list(set(result))
         return result

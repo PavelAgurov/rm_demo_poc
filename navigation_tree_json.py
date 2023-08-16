@@ -6,14 +6,14 @@
 from navigation import TreeViewNode
 
 tree_json : dict[int, TreeViewNode] = { # Yes/No nodes or Document name
-        1:  TreeViewNode.branch_node(2, 3, "Are you migrating an existing project?", "F_MIGRATE"),
-        2:  TreeViewNode.question_node(4, "Is the cloud provider for this project one of the options: Azure, GCP, TIBCO or ATOS?"),
-        3:  TreeViewNode.question_node(4, "Is the migration originating from Azure, GCP, TIBCO, or ATOS?"),
-        4:  TreeViewNode.branch_node(5, 8, "Do you require compute capabilities for your project?", "F_COMPUTE"),
+        1:  TreeViewNode.branch_node(2, 3, "Is it migration of existed project?", "F_MIGRATE", context="Otherwise it's new project"),
+        2:  TreeViewNode.question_node(4, "Does project use cloud provider?", context= "For example it can be Azure, GCP, TIBCO or ATOS"),
+        3:  TreeViewNode.question_node(4, "Is the migration project?", context="For example it can be migration from Azure, GCP, TIBCO, or ATOS"),
+        4:  TreeViewNode.branch_node(5, 8, "Do you require compute capabilities for project?", "F_COMPUTE"),
         5:  TreeViewNode.branch_node(6, 7, "Are you considering serverless or event-driven architectures for compute?", "F_SERVERLESS_COMPUTE"),
-        6:  TreeViewNode.question_node(8, "Is the serverless service under consideration Azure Functions, Google Cloud Functions, or another?"),
-        7:  TreeViewNode.question_node(8, "Is the compute service under consideration VMs, Azure Kubernetes Service, or another?"),
-        8:  TreeViewNode.branch_node(9, 12, "Are you considering a specific hosting and deployment type for your application?", "F_HOSTING_TYPE"),
+        6:  TreeViewNode.question_node(8, "Is the serverless service under consideration?", context="For example it can be Azure Functions, Google Cloud Functions, or another."),
+        7:  TreeViewNode.question_node(8, "Is the compute service under consideration?",context="For example VMs, Azure Kubernetes Service, or another."),
+        8:  TreeViewNode.branch_node(9, 12, "Is a specific hosting type being considered for the application?", "F_HOSTING_TYPE"),
         9:  TreeViewNode.branch_node(10, 11, "Is containerization a part of your hosting strategy?", "F_CONTAINERIZATION"),
         10:  TreeViewNode.question_node(12, "Are you planning to use Docker for containerization?", "F_DOCKER"),
         11:  TreeViewNode.question_node(12, "Is the hosting service under consideration Azure App Service, AKS, or another?"),

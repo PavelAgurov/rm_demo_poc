@@ -15,6 +15,12 @@ class NavigationError(Exception):
     """Dialog Navigation exception"""
 
 @dataclass
+class BaseNavigationQuestion:
+    question_id : int
+    question    : str
+    context     : str
+
+@dataclass
 class TreeNodeAnswer:
     """Answer related to the node"""
     score       : float
@@ -36,34 +42,36 @@ class TreeViewNode:
     variable    : str
     fixed_value : bool
     answer      : TreeNodeAnswer
-    def __init__(self, yes_node_id : int, no_node_id: int, question : str, variable : str, fixed_value : bool):
+    context     : str
+    def __init__(self, yes_node_id : int, no_node_id: int, question : str, variable : str, fixed_value : bool, context : str):
         self.yes_node_id = yes_node_id
         self.no_node_id  = no_node_id
         self.question    = question
         self.variable    = variable
         self.fixed_value = fixed_value
+        self.context     = context
         self.answer      = None
 
     @classmethod
-    def branch_node(cls, yes_question_id : int, no_question_id: int, question : str, variable : str = None):
+    def branch_node(cls, yes_question_id : int, no_question_id: int, question : str, variable : str = None, context : str = None):
         """Create branch node - redirect depends on yes/no"""
         if question is None:
             raise NavigationError("Question can't be None for branch_node")
-        return TreeViewNode(yes_question_id, no_question_id, question, variable, None)
+        return TreeViewNode(yes_question_id, no_question_id, question, variable, None, context)
 
     @classmethod
-    def question_node(cls, next_node : int, question : str, variable : str = None):
+    def question_node(cls, next_node : int, question : str, variable : str = None, context : str = None):
         """Create question node - it's only question and one path to redirect"""
         if question is None:
             raise NavigationError("Question can't be None for question_node")
-        return TreeViewNode(next_node, next_node, question, variable, None)
+        return TreeViewNode(next_node, next_node, question, variable, None, context)
 
     @classmethod
-    def fixed_node(cls, yes_question_id : int, no_question_id: int, question : str, variable : str, fixed_value : bool):
+    def fixed_node(cls, yes_question_id : int, no_question_id: int, question : str, variable : str, fixed_value : bool, context : str = None):
         """Create fixed value node - redirect depends on yes/no, but only if we have required answer"""
         if fixed_value is None:
             raise NavigationError("fixed_value can't be None for fixed_node")
-        return TreeViewNode(yes_question_id, no_question_id, question, variable, fixed_value)
+        return TreeViewNode(yes_question_id, no_question_id, question, variable, fixed_value, context)
 
     def set_answer(self, answer : TreeNodeAnswer):
         """Assign answer to the node"""
@@ -94,8 +102,13 @@ class BaseDialogNavigator(ABC):
         """Save state into session"""
 
     @abstractmethod
-    def get_question_list_as_numerated(self, include_answer : bool = False) -> str:
+    def get_question_list(self) -> list[BaseNavigationQuestion]:
         """Retun list of questions"""
+        return ""
+
+    @abstractmethod
+    def get_question_list_as_numerated(self, include_answer : bool = False) -> str:
+        """Retun numerated list of questions as one string"""
         return ""
 
     @abstractmethod
@@ -109,7 +122,7 @@ class BaseDialogNavigator(ABC):
         return None
 
     @abstractmethod
-    def get_question_by_nodeId(self, node_id) -> str:
+    def get_question_by_nodeId(self, node_id) -> BaseNavigationQuestion:
         """Return question by nodeId"""
         return None
 
@@ -149,6 +162,12 @@ class TreeDialogNavigator(BaseDialogNavigator):
             return "Yes"
         return "No"
 
+    def get_question_list(self) -> list[BaseNavigationQuestion]:
+        result = []
+        for node_item in self.tree_json.items():
+            result.append(BaseNavigationQuestion(node_item[0], node_item[1].question, node_item[1].context))
+        return result
+
     def get_question_list_as_numerated(self, include_answer : bool = False) -> str:
         result = []
         for node_item in self.tree_json.items():
@@ -177,14 +196,15 @@ class TreeDialogNavigator(BaseDialogNavigator):
             result.append(row)
         return pd.DataFrame(result, columns = self._question_list_columns)
 
-    def __get_node_by_id(self, node_id : int) -> TreeViewNode:
+    def get_node_by_id(self, node_id : int) -> TreeViewNode:
+        """Get node by Id"""
         if node_id in self.tree_json:
             return self.tree_json[node_id]
         return None
 
     def set_node_answer(self, node_id : int, answer : TreeNodeAnswer):
         """Set answer for node"""
-        node = self.__get_node_by_id(node_id)
+        node = self.get_node_by_id(node_id)
         if not node:
             raise NavigationError(f"Unknown nodeId {node_id}")
         node.set_answer(answer)
@@ -192,7 +212,7 @@ class TreeDialogNavigator(BaseDialogNavigator):
 
     def get_node_answer(self, node_id : int) -> TreeNodeAnswer:
         """Get answer for node"""
-        node = self.__get_node_by_id(node_id)
+        node = self.get_node_by_id(node_id)
         if not node:
             return None
         return node.get_answer()
@@ -207,7 +227,7 @@ class TreeDialogNavigator(BaseDialogNavigator):
     def get_next_nodeId(self) -> int:
         node_id = 1
         for _ in range(10000): # just to make cycle limited
-            node = self.__get_node_by_id(node_id)
+            node = self.get_node_by_id(node_id)
             if not node:
                 raise NavigationError(f"Unknown nodeId {node_id}")
             node_answer = node.get_answer()
@@ -242,11 +262,11 @@ class TreeDialogNavigator(BaseDialogNavigator):
             node_id = next_nodeId
         raise NavigationError("Cycled dialog tree")
 
-    def get_question_by_nodeId(self, node_id) -> str:
-        node = self.__get_node_by_id(node_id)
+    def get_question_by_nodeId(self, node_id : int) -> BaseNavigationQuestion:
+        node = self.get_node_by_id(node_id)
         if not node:
             raise NavigationError(f"Unknown nodeId {node_id}")
-        return node.question
+        return BaseNavigationQuestion(node_id, node.question, node.context)
 
     def get_variable_values(self) -> dict[str, bool]:
         """Get list of variables"""

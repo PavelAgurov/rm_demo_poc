@@ -8,7 +8,7 @@ from session_manager import MemorySessionManager
 # pylint: disable=C0103,R0915,C0301
 
 tree_json_for_test : dict[int, TreeViewNode] = { # Yes/No nodes or Document name
-        1: TreeViewNode.branch_node(2, 3, "N1", "F_N1"),
+        1: TreeViewNode.branch_node(2, 3, "N1", "F_N1", "C1"),
         2: TreeViewNode.question_node(3, "N2", "F_N2"),
         3: TreeViewNode.question_node(4, "N3", None),
         4: TreeViewNode.branch_node(5, 8, "N4", "F_N4"),
