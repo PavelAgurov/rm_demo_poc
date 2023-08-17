@@ -345,8 +345,15 @@ variable_values_from_dialog : dict[str, bool] = dialog_navigator.get_variable_va
 variable_value_from_value_items : dict[str, bool] = value_item_manager.get_variable_values()
 variable_values = variable_values_from_dialog | variable_value_from_value_items
 variable_list_container.dataframe(pd.DataFrame([[v[0], v[1]] for v in variable_values.items()], columns=['Name', 'Value']), use_container_width=True, hide_index=True)
-recommendation_container.dataframe(recommendation_manager.get_recommendation_list_as_dataFrame(variable_values), use_container_width=True, hide_index=True)
 recommendation_data_container.dataframe(recommendation_manager.get_full_recomendation_list_as_dataFrame(), use_container_width=True, hide_index=True)
+recommendation_container.markdown(
+    recommendation_manager.get_recommendation_list_as_dataFrame(variable_values).to_html(
+        render_links=True, 
+        escape=False, 
+        index = False
+    ), 
+    unsafe_allow_html=True
+)
 
 # if png was generated - we can download it
 if os.path.isfile(dialog_navigator.file_name):

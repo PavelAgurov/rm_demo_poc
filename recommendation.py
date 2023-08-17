@@ -45,6 +45,9 @@ class RecommendationManager:
 
     def get_recommendation_list(self, variable_values : dict[str, str]) -> list[str]:
         """Get list of recommendation based on variables"""
+
+        variable_urls = '&'.join([f'{v[0]}={v[1]}' for v in variable_values.items()])
+
         result = []
         for r in self._storage:
             required_variables = r.variables
@@ -53,7 +56,9 @@ class RecommendationManager:
                 if not self.variable_has_required_value(v[0], v[1], variable_values):
                     all_requred_set = False
             if all_requred_set:
-                result.append(r.recommendation)
+                result_str = r.recommendation
+                result_str = result_str.replace('#VARS#', variable_urls)
+                result.append(result_str)
         return result
 
     def get_recommendation_list_as_dataFrame(self, variable_values : dict[str, str]) -> pd.DataFrame:

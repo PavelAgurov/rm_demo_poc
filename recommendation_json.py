@@ -6,7 +6,7 @@
 from recommendation import RecommendationItem
 
 recommendation_json = [
-    RecommendationItem({"F_MIGRATE": 1}, "Consider Azure's migration services for a seamless transition."),
+    RecommendationItem({"F_MIGRATE": 1}, "Consider Azure's migration <a href='https://azure.microsoft.com/en-us/solutions/migration?#VARS#'>services</a> for a seamless transition."),
     RecommendationItem({"F_CLOUD_PROVIDER": "Azure", "F_COMPUTE" : 1},	"Consider Azure VMs or Azure Kubernetes Service for compute needs."),
     RecommendationItem({"F_SERVERLESS_COMPUTE":1, "F_CLOUD_PROVIDER": "Azure"},	"Consider using Azure Functions for serverless compute capabilities."),
     RecommendationItem({"F_CONTAINERIZATION": 1},	"Containerization template. Consider Azure Kubernetes Service for orchestration."),

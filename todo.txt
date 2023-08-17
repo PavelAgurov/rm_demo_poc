@@ -1,7 +1,10 @@
 1. key words for question
 2. Split into chunks
 3. Validate all or only by navigation (if tree is big) - flag for branch?
+- Recalculate only next question by tree
 4. Number value (question: "How many endpoint do you have?")
 5. Varibale node (depends on variable value)
 6. Variable checking (if we have variable that in recommendations)
 7. download png after generation
+8. URL with param of all variables
+    <a href="myslac.com/.../?%VARS%">Deploy</a>
