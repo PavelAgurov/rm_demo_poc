@@ -7,7 +7,7 @@ from navigation import TreeViewNode
 
 tree_json : dict[int, TreeViewNode] = { # Yes/No nodes or Document name
         1:  TreeViewNode.branch_node(2, 3, "Is it migration of existed project?", "F_MIGRATE", context="Otherwise it's new project"),
-        2:  TreeViewNode.question_node(4, "Does project use cloud provider?", context= "For example it can be Azure, GCP, TIBCO or ATOS"),
+        2:  TreeViewNode.question_node(4, "Does project use cloud provider?", context= "For example it can be Azure or GCP"),
         3:  TreeViewNode.question_node(4, "Is the migration project?", context="For example it can be migration from Azure, GCP"),
         4:  TreeViewNode.branch_node(5, 8, "Do you require compute capabilities for project?", "F_COMPUTE"),
         5:  TreeViewNode.branch_node(6, 7, "Are you considering serverless or event-driven architectures for compute?", "F_SERVERLESS_COMPUTE"),
