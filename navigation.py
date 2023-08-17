@@ -133,7 +133,7 @@ class TreeDialogNavigator(BaseDialogNavigator):
     __SESSION_NAME = 'tree_dialog_session'
 
     _question_list_columns = ["#", 'Question', 'Answer', 'Explanation', 'References', 'Score']
-    _question_data_columns = ["#", 'Question', 'Yes', 'No', 'Variable']
+    _question_data_columns = ["#", 'Question', 'Yes', 'No', 'Variable', 'Context']
 
     file_name = 'Digraph.gv.png'
 
@@ -293,7 +293,7 @@ class TreeDialogNavigator(BaseDialogNavigator):
         """Return tree as DataFrame"""
         result = []
         for node_item in self.tree_json.items():
-            row = [node_item[0], node_item[1].question, node_item[1].yes_node_id, node_item[1].no_node_id, node_item[1].variable]
+            row = [node_item[0], node_item[1].question, node_item[1].yes_node_id, node_item[1].no_node_id, node_item[1].variable, node_item[1].context]
             result.append(row)
         return pd.DataFrame(result, columns = self._question_data_columns)
 
