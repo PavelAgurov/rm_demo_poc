@@ -10,7 +10,7 @@ recommendation_json = [
     RecommendationItem({"F_CLOUD_PROVIDER": "Azure", "F_COMPUTE" : 1},	"Consider Azure VMs or Azure Kubernetes Service for compute needs."),
     RecommendationItem({"F_SERVERLESS_COMPUTE":1, "F_CLOUD_PROVIDER": "Azure"},	"Consider using Azure Functions for serverless compute capabilities."),
     RecommendationItem({"F_CONTAINERIZATION": 1},	"Containerization template. Consider Azure Kubernetes Service for orchestration."),
-    RecommendationItem({"F_DOCKER": 1},	"Deploy using Azure Container Instances or Azure Kubernetes Service with Docker."),
+    RecommendationItem({"F_DOCKER": 1},	"<a href='https://mydeploy.com/#VARS#'><button type='button' title='#VARS#'>Deploy</button></a> using Azure Container Instances or Azure Kubernetes Service with Docker."),
     RecommendationItem({"F_DATABASE": 1, "F_RELATIONAL_DB" : 1},	"Explore Azure SQL Database or Azure Database for PostgreSQL."),
     RecommendationItem({"F_DATABASE": 1, "F_NOSQL_SERVICE" :1},	"Explore Azure Cosmos DB for NoSQL requirements."),
     RecommendationItem({"F_CACHING": 1},	"Consider using Azure Redis Cache for enhanced performance."),

@@ -8,3 +8,7 @@
 7. download png after generation
 8. URL with param of all variables
     <a href="myslac.com/.../?%VARS%">Deploy</a>
+9. Sent variable as URL param
+10. Allow to use Wikipedia and search
+11. Allow to detect direct answers (store question_id in dialog and store direct answers)
+do not run LLM for direct answers
