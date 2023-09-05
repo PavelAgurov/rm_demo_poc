@@ -16,6 +16,10 @@ class NavigationError(Exception):
 
 @dataclass
 class BaseNavigationQuestion:
+    """
+        Base class for navigation question 
+        (not needed yet - we have only treeview navigation)
+    """
     node_id  : int
     question : str
     context  : str

@@ -68,16 +68,29 @@ class DialogStorage:
 
     def get_collected_fact_list(self, no_error_only : bool = True) -> list[str]:
         """Get list of facts"""
-        result = []
+        result_fact_list   = list[str]()
+        result_from_nodes = dict[int, list[str]]()
         for data_item in self.dialog_list:
             if no_error_only and data_item.error:
                 continue
+            
+            fact_list = list[str]()
             for f in data_item.facts:
                 if not f.endswith('.'):
                     f+='.'
-                result.append(f)
-        result = list(set(result))
-        return result
+                fact_list.append(f)
+
+            # dict is needed here to use only last answer for node
+            if data_item.node_id:
+                result_from_nodes[data_item.node_id] = fact_list
+            else:
+                result_fact_list.extend(fact_list)
+
+        for result_node_facts in result_from_nodes.values():
+            result_fact_list.extend(result_node_facts)
+
+        result_fact_list = list(set(result_fact_list))
+        return result_fact_list
 
     def get_collected_direct_answers(self, no_error_only : bool = True) -> dict[int, str]:
         """Get list of direct answers"""
