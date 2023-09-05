@@ -30,20 +30,20 @@ def streamlit_hack_disable_textarea_submit():
             width=0,
         )
 
+
 def streamlit_hack_remove_top_space():
     st.markdown("""
         <style>
                .block-container {
                     padding-top: 1rem;
                 }
-        </style>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("""
-        <style>
                .css-1544g2n  {
                     padding-top: 2rem;
                 }
+                .css-10oheav {
+                    padding-top: 2rem;
+                }
         </style>
-        """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)    
+
 

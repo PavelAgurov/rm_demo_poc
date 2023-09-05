@@ -7,6 +7,7 @@ For each fact you should add a score of relevance from 0 to 1 (0 - not relevant,
 Provide answer in JSON format with fields: 
 - it_project_facts - list of extracted facts that are relevant to the IT project architecture with score
 - other_facts - list of other facts that are not relevant to the IT project architecture with score
+- direct_answer - direct answer to the question (yes, no or value) if it was provided in the answer
 
 <question>{question}</question>
 <answer>{answer}</answer>

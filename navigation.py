@@ -16,9 +16,9 @@ class NavigationError(Exception):
 
 @dataclass
 class BaseNavigationQuestion:
-    question_id : int
-    question    : str
-    context     : str
+    node_id  : int
+    question : str
+    context  : str
 
 @dataclass
 class TreeNodeAnswer:
@@ -234,7 +234,7 @@ class TreeDialogNavigator(BaseDialogNavigator):
             no_answer_yet = node_answer is None or node_answer.answer is None # no answer yet
             fixed_value = node.fixed_value
             if fixed_value is None: # it's normal node
-                if no_answer_yet: 
+                if no_answer_yet:
                     return node_id
                 if node_answer.answer: # we have answer yes or no
                     next_nodeId = node.yes_node_id
