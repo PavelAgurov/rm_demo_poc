@@ -1,7 +1,7 @@
 """
     Main APP and UI
 """
-# pylint: disable=C0301,C0103,C0303
+# pylint: disable=C0301,C0103,C0303,R0913,R0914
 
 from datetime import datetime
 import json
@@ -80,12 +80,25 @@ with tab_main:
 
 with tab_setting:
     open_api_key = st.text_input("OpenAPI Key: ", "", key="open_api_key")
+    st.info("""\
+            System can check all question in one request or check it one by one. Second option is more expensive (used more tokens),
+            but it has better quality.
+    """)
     cb_process_all_question = st.checkbox(label="Process all questions at once", value=False)
+    st.info("""\
+            Direct answer means that user provide answer the question (yes/no or text). System will analizy all additionally
+            provided information, but use direct answer without LLM checking.
+    """)
     cb_use_direct_answer_in_tree = st.checkbox(
         label="Do not calculate dialog node by LLM if there is direct answer",
         disabled = cb_process_all_question,
         value=True
     )
+    st.info("""\
+            System can permanently save answer and do not re-calculate it with new facts. In this case system can't 
+            indentify contradictive answers, but it will improve performance.
+    """)
+    do_not_calculate_answered = st.checkbox(label="Do not re-calculate already answered questions", value=True)
 
 with tab_data:
     navigation_data_container = st.expander(label="Navigation data").empty()
@@ -162,12 +175,12 @@ def get_fact_list_from_question_answer(node_id : int, question : str, provied_an
         error = True
     return ExtratedFactList(fact_list_from_a2q, direct_answer, error)
 
-def get_anser_value(answer_str : str) -> bool:
+def answer2bool(answer_str : str) -> bool:
     """Convert answer string into bool or None"""
     answer_str = answer_str.lower()
-    if answer_str == "yes":
+    if answer_str in ["yes", "y", "true"]:
         return 1
-    if answer_str == "no":
+    if answer_str in ["no", "n", "false"]:
         return 0
     return None
 
@@ -195,7 +208,7 @@ def extract_answers_from_fact_list(
         score_result_json = json.loads(get_fixed_json(score_result))
         for answer_json in score_result_json:
             question_id  = int(answer_json["QuestionID"])
-            answer_value = get_anser_value(answer_json["Answer"])
+            answer_value = answer2bool(answer_json["Answer"])
             answer = TreeNodeAnswer(answer_json["Score"], answer_value, answer_json["Explanation"], answer_json["RefFacts"])
             navigator.set_node_answer(question_id, answer)
     except Exception as error: # pylint: disable=W0718,W0702
@@ -207,18 +220,29 @@ def extract_answers_from_fact_list_one(
         question_list : list[BaseNavigationQuestion],
         fact_list_str : str,
         use_direct_answer_in_tree : bool,
-        direct_answers : dict[int, str]
+        direct_answers : dict[int, str],
+        skip_answered : bool
     ):
     """Extract answers from fact list one by one"""
+
     score_result_list = []
     for question in question_list:
 
+        if skip_answered and question.node_id: # skip calculation if we have answer already
+            node_answer = navigator.get_node_answer(question.node_id)
+            if (node_answer is not None) and (node_answer.answer_bool is not None):
+                print(f'{question.node_id} has answer already - skip')
+                continue
+
         if use_direct_answer_in_tree: # we can use direct answers for navigation
-            if question.node_id in direct_answers: # we have direct answer for this question
+            if question.node_id and (question.node_id in direct_answers): # we have direct answer for this question
                 node_direct_answer_value = direct_answers[question.node_id]
-                node_direct_answer = TreeNodeAnswer(1, node_direct_answer_value, "Direct answer", None)
+                node_direct_answer_bool = answer2bool(node_direct_answer_value)
+                node_direct_answer_str = f'Direct answer for node {question.node_id}: {node_direct_answer_value} [{node_direct_answer_bool}]'
+                node_direct_answer = TreeNodeAnswer(1, node_direct_answer_bool, "Direct answer", None)
                 navigator.set_node_answer(question.node_id, node_direct_answer)
-                score_result_list.append(f'Direct answer for node {question.node_id}: {node_direct_answer_value}')
+                print(node_direct_answer_str)
+                score_result_list.append(node_direct_answer_str)
                 continue
 
         status_container.markdown(f'Starting LLM to extract answers {question.node_id}/{len(question_list)}...')
@@ -231,7 +255,7 @@ def extract_answers_from_fact_list_one(
         try:
             score_result_json = json.loads(get_fixed_json(score_result))
             for answer_json in score_result_json:
-                answer_value = get_anser_value(answer_json["Answer"])
+                answer_value = answer2bool(answer_json["Answer"])
                 answer = TreeNodeAnswer(answer_json["Score"], answer_value, answer_json["Explanation"], answer_json["RefFacts"])
                 navigator.set_node_answer(question.node_id, answer)
         except Exception as error: # pylint: disable=W0718,W0702
@@ -366,7 +390,8 @@ if collected_fact_list_str:
             full_question_list,
             collected_fact_list_str,
             cb_use_direct_answer_in_tree,
-            collected_direct_answers
+            collected_direct_answers,
+            do_not_calculate_answered
         )
 
     value_items_list_str = value_item_manager.get_list_as_numerated()

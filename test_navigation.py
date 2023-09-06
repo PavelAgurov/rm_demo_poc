@@ -62,7 +62,7 @@ def test_navigation_tree():
     a1 = treeDialogNavigator.get_node_answer(1)
     assert a1 is not None
     assert a1.score == 1
-    assert a1.answer is True
+    assert a1.answer_bool is True
     assert a1.explanation == "E1"
     assert a1.references == [1, 3]
     next_node_id : int = treeDialogNavigator.get_next_nodeId()
@@ -76,7 +76,7 @@ def test_navigation_tree():
     a1 = restoredTreeDialogNavigator.get_node_answer(1)
     assert a1 is not None
     assert a1.score == 1
-    assert a1.answer is True
+    assert a1.answer_bool is True
     assert a1.explanation == "E1"
     assert a1.references == [1, 3]
     next_node_id : int = restoredTreeDialogNavigator.get_next_nodeId()

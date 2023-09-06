@@ -1,11 +1,11 @@
-def get_numerated_list(l : list) -> list:
+def get_numerated_list(lst : list) -> list:
     result = []
-    for index, row in enumerate(l):
+    for index, row in enumerate(lst):
         result.append(f'{index+1}. {row}')
     return result
 
-def get_numerated_list_string(l : list) -> str:
-    result = get_numerated_list(l)
+def get_numerated_list_string(lst : list) -> str:
+    result = get_numerated_list(lst)
     return '\n'.join(result)
 
 def get_fixed_json(text : str) -> str:

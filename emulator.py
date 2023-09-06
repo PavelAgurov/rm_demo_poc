@@ -13,8 +13,8 @@ def EMULATOR_get_fact_list(node_id : int, provied_answer : str) -> ExtratedFactL
     """Fact list extractor emulator"""
     error_emulation = provied_answer[0].lower() == "e"
     if provied_answer.startswith("FACT:"):
-        return ExtratedFactList([provied_answer.removeprefix("FACT:")], error_emulation)
-    return ExtratedFactList([f"{node_id}-1", f"{node_id}-2"], error_emulation)
+        return ExtratedFactList([provied_answer.removeprefix("FACT:")], None, error_emulation)
+    return ExtratedFactList([f"{node_id}-1", f"{node_id}-2"], None, error_emulation)
 
 def EMULATOR_set_answers(fact_list_str : str, dialog_navigator : TreeDialogNavigator):
     """Answer list extractor emulator"""

@@ -1,7 +1,7 @@
 """
     Navigation classes
 """
-# pylint: disable=C0301,C0103,C0411,R0913,W0311
+# pylint: disable=C0301,C0103,C0411,R0913,W0311,C0303
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -28,7 +28,7 @@ class BaseNavigationQuestion:
 class TreeNodeAnswer:
     """Answer related to the node"""
     score       : float
-    answer      : bool
+    answer_bool : bool
     explanation : str
     references  : List[int]
 
@@ -178,7 +178,7 @@ class TreeDialogNavigator(BaseDialogNavigator):
             s = f'{node_item[0]}. {node_item[1].question}'
             if include_answer:
                 if node_item[1].answer:
-                    s = f'{s} [{node_item[1].answer.answer}]'
+                    s = f'{s} [{node_item[1].answer.answer_bool}]'
                 else:
                     s = f'{s} [{None}]'
             result.append(s)
@@ -190,7 +190,7 @@ class TreeDialogNavigator(BaseDialogNavigator):
             row = [node_item[0], node_item[1].question]
             if node_item[1].answer:
                 row.extend([
-                    self.__bool2YesNo(node_item[1].answer.answer), 
+                    self.__bool2YesNo(node_item[1].answer.answer_bool), 
                     node_item[1].answer.explanation, 
                     node_item[1].answer.references, 
                     node_item[1].answer.score
@@ -235,12 +235,12 @@ class TreeDialogNavigator(BaseDialogNavigator):
             if not node:
                 raise NavigationError(f"Unknown nodeId {node_id}")
             node_answer = node.get_answer()
-            no_answer_yet = node_answer is None or node_answer.answer is None # no answer yet
+            no_answer_yet = node_answer is None or node_answer.answer_bool is None # no answer yet
             fixed_value = node.fixed_value
             if fixed_value is None: # it's normal node
                 if no_answer_yet:
                     return node_id
-                if node_answer.answer: # we have answer yes or no
+                if node_answer.answer_bool: # we have answer yes or no
                     next_nodeId = node.yes_node_id
                 else:
                     next_nodeId = node.no_node_id
@@ -251,7 +251,7 @@ class TreeDialogNavigator(BaseDialogNavigator):
                     else:
                         next_nodeId = node.yes_node_id                
                 else:
-                    if node_answer.answer != fixed_value: # we have answer, but it's not fixed_answer - run opposite branch
+                    if node_answer.answer_bool != fixed_value: # we have answer, but it's not fixed_answer - run opposite branch
                         if fixed_value:
                             next_nodeId = node.no_node_id
                         else:
@@ -278,7 +278,7 @@ class TreeDialogNavigator(BaseDialogNavigator):
         for node_item in self.tree_json.items():
             if not node_item[1].variable or  not node_item[1].answer:
                 continue
-            answer_bool = node_item[1].answer.answer
+            answer_bool = node_item[1].answer.answer_bool
             if answer_bool is None:
                 continue
             result[node_item[1].variable] = answer_bool
