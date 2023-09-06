@@ -26,7 +26,7 @@ class DialogStorage:
     dialog_list : list[DialogItem]
     
     _SESSION_COLLECTED_DIALOG = 'collected_dialog'
-    _columns = ['Time', 'Node', 'Question', 'Answer', 'Facts', 'Direct anwer', 'Error']
+    _columns = ['Time', 'Node', 'Question', 'Answer', 'Facts', 'Direct answer', 'Error']
 
     def __init__(self, sessionManager : BaseSessionManager):
         self.sessionManager = sessionManager
