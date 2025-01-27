@@ -14,6 +14,7 @@ class RecommendationItem:
     variables : dict[str, str]
     recommendation : str
 
+
 class RecommendationManager:
     """Recommendation storage and manager"""
     _storage : list[RecommendationItem]

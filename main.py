@@ -1,7 +1,7 @@
 """
     Main APP and UI
 """
-# pylint: disable=C0301,C0103,C0303,R0913,R0914
+# pylint: disable=C0301,C0103,C0303,R0913,R0914,C0412
 
 from datetime import datetime
 import json
@@ -11,11 +11,12 @@ import pandas as pd
 import streamlit as st
 
 import langchain
-from langchain import PromptTemplate
-from langchain.chat_models import ChatOpenAI
-from langchain.chains import LLMChain
-from langchain.cache import SQLiteCache
-from langchain.callbacks import get_openai_callback
+from langchain_openai import ChatOpenAI
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_community.callbacks import get_openai_callback
+from langchain_community.cache import SQLiteCache
+from langchain_core.runnables.base import RunnableSequence
 
 from dialog_storage import DialogStorage, DialogItem
 from prompts import extract_facts_prompt_template, score_all_prompt_template, value_item_prompt_template, score_one_prompt_template
@@ -156,7 +157,7 @@ def get_fact_list_from_question_answer(node_id : int, question : str, provied_an
     facts_from_dialog = None
     status_container.markdown('Starting LLM to extract facts...')
     with get_openai_callback() as cb:
-        facts_from_dialog = extract_facts_chain.run(question = question, answer = provied_answer)
+        facts_from_dialog = extract_facts_chain.invoke({"question" : question, "answer" : provied_answer})
     st.session_state[SESSION_TOKEN_COUNT] += cb.total_tokens
     status_container.markdown(f'Done. Used {cb.total_tokens} tokens.')
     facts_from_dialog_conteiner.markdown(facts_from_dialog)
@@ -187,7 +188,7 @@ def answer2bool(answer_str : str) -> bool:
 
 def extract_answers_from_fact_list(
         navigator : TreeDialogNavigator,
-        chain : LLMChain,
+        chain : RunnableSequence,
         question_list_str : str,
         fact_list_str : str
     ):
@@ -199,7 +200,7 @@ def extract_answers_from_fact_list(
 
     status_container.markdown('Starting LLM to extract answers...')
     with get_openai_callback() as cb:
-        score_result = chain.run(questions = question_list_str, facts = fact_list_str)
+        score_result = chain.invoke({"questions" : question_list_str, "facts" : fact_list_str})
     st.session_state[SESSION_TOKEN_COUNT] += cb.total_tokens
     status_container.markdown(f'Done. Used {cb.total_tokens} tokens.')
     score_result_container.markdown(score_result)
@@ -216,7 +217,7 @@ def extract_answers_from_fact_list(
 
 def extract_answers_from_fact_list_one(
         navigator : TreeDialogNavigator,
-        chain : LLMChain,
+        chain : RunnableSequence,
         question_list : list[BaseNavigationQuestion],
         fact_list_str : str,
         use_direct_answer_in_tree : bool,
@@ -247,7 +248,7 @@ def extract_answers_from_fact_list_one(
 
         status_container.markdown(f'Starting LLM to extract answers {question.node_id}/{len(question_list)}...')
         with get_openai_callback() as cb:
-            score_result = chain.run(question = question, facts = fact_list_str)
+            score_result = chain.invoke({"question" : question, "facts" : fact_list_str})
         st.session_state[SESSION_TOKEN_COUNT] += cb.total_tokens
         status_container.markdown(f'Done. Used {cb.total_tokens} tokens.')
         score_result_list.append(score_result)
@@ -265,7 +266,7 @@ def extract_answers_from_fact_list_one(
 
 def extract_value_items_from_fact_list(
         manager : ValueItemManager,
-        chain : LLMChain,
+        chain : RunnableSequence,
         items_list_str : str,
         fact_list_str : str
     ):
@@ -277,7 +278,7 @@ def extract_value_items_from_fact_list(
 
     status_container.markdown('Starting LLM to extract value items...')
     with get_openai_callback() as cb:
-        score_result = chain.run(questions = items_list_str, facts = fact_list_str)
+        score_result = chain.invoke({"questions" : items_list_str, "facts" : fact_list_str})
     st.session_state[SESSION_TOKEN_COUNT] += cb.total_tokens
     status_container.markdown(f'Done. Used {cb.total_tokens} tokens.')
     value_item_result_container.markdown(score_result)
@@ -301,16 +302,16 @@ else:
 
 langchain.llm_cache = SQLiteCache()
 
-llm = ChatOpenAI(model_name = "gpt-3.5-turbo", openai_api_key = LLM_OPENAI_API_KEY, max_tokens = 1000, temperature = 0)
+llm = ChatOpenAI(model_name = "gpt-4o-mini", openai_api_key = LLM_OPENAI_API_KEY, max_tokens = 1000, temperature = 0)
 
-extract_facts_prompt = PromptTemplate.from_template(extract_facts_prompt_template)
-extract_facts_chain  = LLMChain(llm=llm, prompt = extract_facts_prompt)
-score_all_prompt = PromptTemplate.from_template(score_all_prompt_template)
-score_all_chain  = LLMChain(llm=llm, prompt = score_all_prompt)
-score_one_prompt = PromptTemplate.from_template(score_one_prompt_template)
-score_one_chain  = LLMChain(llm=llm, prompt = score_one_prompt)
-value_item_prompt = PromptTemplate.from_template(value_item_prompt_template)
-value_item_chain  = LLMChain(llm=llm, prompt = value_item_prompt)
+extract_facts_prompt = ChatPromptTemplate.from_template(extract_facts_prompt_template)
+extract_facts_chain  = extract_facts_prompt | llm | StrOutputParser()
+score_all_prompt = ChatPromptTemplate.from_template(score_all_prompt_template)
+score_all_chain  = score_all_prompt | llm | StrOutputParser()
+score_one_prompt = ChatPromptTemplate.from_template(score_one_prompt_template)
+score_one_chain  = score_one_prompt | llm | StrOutputParser()
+value_item_prompt = ChatPromptTemplate.from_template(value_item_prompt_template)
+value_item_chain  = value_item_prompt | llm | StrOutputParser()
 
 if LLM_EMULATOR:
     emulator_container.markdown(LLM_EMULATOR_INFO_HTML, unsafe_allow_html=True) # pylint: disable=E0601
